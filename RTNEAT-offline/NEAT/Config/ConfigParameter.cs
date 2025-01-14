@@ -1,6 +1,6 @@
 ﻿using RTNEAT_Offline.NEAT.config;
 
-namespace Defaultnamespace;
+namespace defaultObjectnamespace;
 
 public class ConfigParameter
 {
@@ -25,86 +25,74 @@ public class ConfigParameter
         return $"ConfigParameter(\"{name}\", \"{valueType}\", \"{defaultObject}\")";
     }
 
-    public object Parse(string section, ConfigParser configParser)
+    public object Parse(string section, Dictionary<string, string> sectionConfig)
     {
-        if (valueType == typeof(int))
+        if (!sectionConfig.TryGetValue(name, out var value))
         {
-            return configParser.GetInt32(section, name, (int)(defaultObject ?? 0));
-        }
-
-        if (valueType == typeof(bool))
-        {
-            return configParser.GetBoolean(section, name, (bool)(defaultObject ?? false));
-        }
-
-        if (valueType == typeof(double))
-        {
-            return configParser.GetDouble(section, name, (double)(defaultObject ?? 0.0));
-        }
-
-        if (valueType == typeof(List<string>))
-        {
-            return configParser.GetList(section, name);
-        }
-
-        if (valueType == typeof(string))
-        {
-            return configParser.GetString(section, name, (string)(defaultObject ?? ""));
-        }
-
-        throw new InvalidOperationException($"Unexpected configuration type: {valueType}");
-    }
-
-    public object Interpret(Dictionary<string, string> configDict)
-    {
-        if (!configDict.TryGetValue(name, out string value))
-        {
-            if (defaultObject == null)
-            {
-                throw new InvalidOperationException($"Missing configuration item: {name}");
-            }
-            else
-            {
-                Console.WriteLine($"Warning: Using default {defaultObject} for '{name}'");
-                if (valueType != typeof(string) && defaultObject.GetType() == valueType)
-                {
-                    return defaultObject;
-                }
-                else
-                {
-                    value = defaultObject.ToString();
-                }
-            }
+            throw new Exception($"Missing required parameter '{name}' in section '{section}'.");
         }
 
         try
         {
-            if (valueType == typeof(string))
-                return value;
             if (valueType == typeof(int))
+            {
                 return int.Parse(value);
+            }
             if (valueType == typeof(bool))
             {
-                if (value.ToLower() == "true")
-                    return true;
-                else if (value.ToLower() == "false")
-                    return false;
-                else
-                    throw new InvalidOperationException($"{name} must be True or False");
+                return bool.Parse(value);
+            }
+            if (valueType == typeof(double))
+            {
+                return double.Parse(value);
+            }
+            if (valueType == typeof(List<string>))
+            {
+                return value.Split(' ').ToList();
+            }
+            if (valueType == typeof(string))
+            {
+                return value;
             }
 
-            if (valueType == typeof(double))
-                return double.Parse(value);
-            if (valueType == typeof(List<string>))
-                return value.Split(' ').ToList();
+            throw new InvalidOperationException($"Unsupported configuration type: {valueType}");
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException(
-                $"Error interpreting config item '{name}' with value '{value}' and type {valueType}", ex);
+            throw new Exception($"Error parsing parameter '{name}' in section '{section}': {ex.Message}", ex);
+        }
+    }
+
+    public object Interpret(Dictionary<string, object> config)
+    {
+        if (!config.TryGetValue(name, out var value))
+        {
+            if (defaultObject == null)
+                throw new Exception($"Missing configuration item: {name}");
+
+            Console.WriteLine($"Using default value for '{name}': {defaultObject}");
+            return defaultObject;
         }
 
-        throw new InvalidOperationException($"Unexpected configuration type: {valueType}");
+        try
+        {
+            if (valueType == typeof(int))
+                return Convert.ToInt32(value);
+            if (valueType == typeof(bool))
+                return Convert.ToBoolean(value);
+            if (valueType == typeof(float))
+                return Convert.ToSingle(value);
+            if (valueType == typeof(string))
+                return value.ToString();
+            if (valueType == typeof(List<string>))
+                return new List<string>(value.ToString().Split(' '));
+        }
+        catch
+        {
+            throw new Exception($"Error interpreting config item '{name}' with value {value} as {valueType}");
+        }
+
+        throw new InvalidOperationException($"Unsupported configuration type: {valueType}");
     }
 
     public string Format(object value)
@@ -116,4 +104,16 @@ public class ConfigParameter
 
         return value.ToString();
     }
+
+    public string getname()
+    {
+        return this.name;
+    }
+
+    public object getDefault()
+    {
+        return this.defaultObject;
+    }
+    
+    //Omitted `write_pretty_params`
 }

@@ -9,8 +9,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Content Include="species\species.csproj" />
-      <Content Include="species\species.sln" />
+      <Content Include="NEAT\species\species.csproj" />
+      <Content Include="NEAT\species\species.sln" />
     </ItemGroup>
 
 </Project>
