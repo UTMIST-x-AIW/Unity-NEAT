@@ -38,9 +38,12 @@ public class FeedForwardNetwork
             {
                 nodeInputs.Add(values[inputNode] * weight);
             }
-
+            
+            // After manipulating the inputs, add them to the same value
             double s = nodeEval.AggregationFunction(nodeInputs);
+            
             values[nodeEval.Node] = nodeEval.ActivationFunction(nodeEval.Bias + nodeEval.Response * s);
+            // You are giving these values to the aggregation function 
         }
 
         return outputNodes.Select(node => values[node]).ToList();
