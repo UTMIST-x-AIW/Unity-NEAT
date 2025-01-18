@@ -3,7 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Systems.Threading;
-namespace RTNEAT-offline.NEAT.Reproduction
+
+namespace RTNEATOffline.NEAT.Reproduction
 {
     // Class: DefaultReproduction
     // The class that handles the reproduction of the NEAT algorithm
@@ -46,16 +47,23 @@ namespace RTNEAT-offline.NEAT.Reproduction
             g = genome_type(_genomeIndex);
             g.ConfigureNew(genomeConfig);
             g.parents[_genomeIndex] = tuple();
+
+            return g;
         }
 
-        public Dictionary<int, Genome> Reproduce()
-        {
+        public Dictionary<int, Genome/*Change this*/> reproduce(DefaultGenome parent1, DefaultGenome parent2, DefaultGenome config)
+        {    // A function to calculate the energy / whatever reproduction params is for surviving population
             // !!! NEED TO IMPLEMENT !!!
-        }
 
-        public crossOver()
-        {
-            // !!! NEED TO IMPLEMENT !!!
+            // create a new child
+            var child = CreateNewGenome(DefaultGenome, config);
+            child.ConfigureCrossover(parent1, parent2, config);
+            child.Mutate(config);
+            _parents[childID] = (parent1.ID, parent2.ID);
+
+            // species mapping?
+
+            return child;
         }
 
         
