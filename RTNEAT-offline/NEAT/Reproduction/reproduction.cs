@@ -12,11 +12,11 @@ namespace RTNEATOffline.NEAT.Reproduction
     public class DefaultReproduction
     {
         private ReproductionConfigs _config; // The configuration of the reproduction
-        private List<IReporter> _reporters; // IReporter Interface Type
+        private ReporterSet _reporters; // IReporter Interface Type
 
         private StagnationHandler _stagnation; // Stagnation detection logic 
         
-        private int _genomeIndex; // Global genome innovation number !!!NEED CONFIRMATION!!!
+        private int _GenomeIndex; // Global genome innovation number !!!NEED CONFIRMATION!!!
 
         private Dictionary<int, (int, int)> _parents; //Dictionary containing key of child genome ID and parents ID tuple
         // !!! NEED CONFIRM if tuple is a separate type in Genome!!!
@@ -24,9 +24,9 @@ namespace RTNEATOffline.NEAT.Reproduction
         // Initialize Individual Reproduction Params
 
         // !!! ParseConfig?? !!!
-        public InitializeReproduction(
+        public Reproduction(
             ReproductionConfigs config, 
-            List<IReporter> reporters, 
+            ReporterSet reporters, 
             //StagnationHandler stagnation, 
             int genomeIndex,
             Dictionary<int, (int, int)> parents)
@@ -39,16 +39,31 @@ namespace RTNEATOffline.NEAT.Reproduction
         }
 
         // Function to create one new (child) genome
-        public Dictionary<int, Genome> CreateNewGenome(
-            Type genomeType,
-            GenomeConfig genomeConfig)
+        public void CreateNewGenome(
+            Type GenomeType,
+            GenomeConfig GenomeConfig,
+            _GenomeIndex/*self added*/)
         {
-            _genomeIndex ++; // !!! REPLACE WITH ITERATOR !!!
-            g = genome_type(_genomeIndex);
-            g.ConfigureNew(genomeConfig);
-            g.parents[_genomeIndex] = tuple();
+            _GenomeIndex ++; // !!! REPLACE WITH ITERATOR !!!
+            g = GenomeType(_GenomeIndex);
+            g.ConfigureNew(GenomeConfig);
+            g.parents[_GenomeIndex] = tuple();
 
             return g;
+        }
+
+        public Dictionary<int, Genome> CreateNew(
+            Type GenomeType,
+            GenomeConfig genomeConfig,
+            int numGenomes)
+        {
+            var newGenomes = new Dictionary<int, Genome>();
+            for (var i = 0; i < numGenomes; i++)
+            {
+                newGenomes[i] = CreateNewGenome(GenomeType, genomeConfig);
+            }
+
+            return newGenomes;
         }
 
         public Dictionary<int, Genome/*Change this*/> reproduce(DefaultGenome parent1, DefaultGenome parent2, DefaultGenome config)
