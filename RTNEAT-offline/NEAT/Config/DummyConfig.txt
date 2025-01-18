@@ -1,0 +1,3 @@
+[Reproduction]
+mutation_rate = 0.05
+crossover_rate = 0.8
