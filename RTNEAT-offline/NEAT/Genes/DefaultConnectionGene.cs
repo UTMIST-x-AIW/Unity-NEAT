@@ -1,13 +1,14 @@
 using RTNEAT_offline.NEAT.Configuration;
+using RTNEAT_offline.NEAT.Attributes;
 
 namespace RTNEAT_offline.NEAT.Genes
 {
     public class DefaultConnectionGene : BaseGene
     {
-        private static readonly GeneAttribute[] _geneAttributes = new GeneAttribute[]
+        private static readonly BaseAttribute[] _geneAttributes = new BaseAttribute[]
         {
-            new FloatAttribute("weight"),
-            new BoolAttribute("enabled")
+            new FloatAttribute("weight", null),
+            new BoolAttribute("enabled", null)
         };
 
         public float Weight { get; set; }

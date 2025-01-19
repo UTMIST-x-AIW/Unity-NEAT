@@ -1,4 +1,4 @@
-﻿using defaultObjectnamespace;
+﻿using RTNEAT_offline.NEAT.Configuration;
 
 namespace RTNEAT_offline.NEAT.Attributes;
 

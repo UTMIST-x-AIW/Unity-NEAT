@@ -1,11 +1,12 @@
 using RTNEAT_offline.NEAT.Configuration;
+using RTNEAT_offline.NEAT.Attributes;
 
 namespace RTNEAT_offline.NEAT.Genes
 {
     public abstract class BaseGene
     {
         public object Key { get; private set; }
-        protected List<GeneAttribute> _geneAttributes;
+        protected static List<BaseAttribute> _geneAttributes;
 
         protected BaseGene(object key)
         {
@@ -38,13 +39,13 @@ namespace RTNEAT_offline.NEAT.Genes
 
         public static List<object> GetConfigParams()
         {
-            if (GeneAttributes == null)
+            if (_geneAttributes == null)
             {
                 throw new InvalidOperationException("GeneAttributes is not initialized. Make sure it is set correctly.");
             }
 
             var paramsList = new List<object>();
-            foreach (var attribute in GeneAttributes)
+            foreach (var attribute in _geneAttributes)
             {
                 paramsList.AddRange(attribute.GetConfigParams());
             }
@@ -54,12 +55,12 @@ namespace RTNEAT_offline.NEAT.Genes
 
         public static void ValidateAttributes(object config)
         {
-            if (GeneAttributes == null)
+            if (_geneAttributes == null)
             {
                 throw new InvalidOperationException("GeneAttributes is not initialized. Make sure it is set correctly.");
             }
 
-            foreach (var attribute in GeneAttributes)
+            foreach (var attribute in _geneAttributes)
             {
                 attribute.Validate(config);
             }

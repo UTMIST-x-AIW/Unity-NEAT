@@ -1,13 +1,7 @@
-<<<<<<< HEAD
-namespace RTNEAT_offline.NEAT.Genome
-=======
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+using RTNEAT_offline.NEAT.Configuration;
+using RTNEAT_offline.NEAT.Genes;
 
-namespace RTNEATOffline.NEAT.Genome
->>>>>>> origin/master
+namespace RTNEAT_offline.NEAT.Genome
 {
     public class DefaultGenome
     {

@@ -1,4 +1,5 @@
 using RTNEAT_offline.NEAT.Configuration;
+using RTNEAT_offline.NEAT.Attributes;
 
 namespace RTNEAT_offline.NEAT.Genes
 {
@@ -6,10 +7,10 @@ namespace RTNEAT_offline.NEAT.Genes
     {
         private static readonly GeneAttribute[] _geneAttributes = new GeneAttribute[]
         {
-            new FloatAttribute("bias"),
-            new FloatAttribute("response"),
-            new StringAttribute("activation", ""),
-            new StringAttribute("aggregation", "")
+            new FloatAttribute("bias", null),
+            new FloatAttribute("response", null),
+            new StringAttribute("activation", options=''),
+            new StringAttribute("aggregation", options='')
         };
 
         public float Bias { get; set; }
