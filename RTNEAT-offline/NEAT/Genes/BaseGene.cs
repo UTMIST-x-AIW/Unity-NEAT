@@ -1,6 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using RTNEAT_offline.NEAT.Configuration;
 
 namespace RTNEAT_offline.NEAT.Genes
 {
@@ -104,7 +102,7 @@ namespace RTNEAT_offline.NEAT.Genes
 
             foreach (var attr in _geneAttributes)
             {
-                var value = random.NextDouble() > 0.5 ? 
+                var value = random.NextDouble() > 0.5 ?
                     GetType().GetProperty(attr.Name)?.GetValue(this) :
                     GetType().GetProperty(attr.Name)?.GetValue(gene2);
                 GetType().GetProperty(attr.Name)?.SetValue(newGene, value);

@@ -1,4 +1,4 @@
-using System;
+using RTNEAT_offline.NEAT.Configuration;
 
 namespace RTNEAT_offline.NEAT.Genes
 {

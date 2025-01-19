@@ -1,4 +1,5 @@
-﻿namespace RTNEAT_Offline.NEAT.config;
+﻿namespace RTNEAT_offline.NEAT.Configuration;
+
 public class ConfigParser
 {
     private Dictionary<string, Dictionary<string, string>> _sections;

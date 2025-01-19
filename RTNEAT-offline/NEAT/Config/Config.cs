@@ -1,6 +1,4 @@
-﻿using defaultObjectnamespace;
-
-namespace DefaultNamespace;
+﻿namespace RTNEAT_offline.NEAT.Configuration;
 
 public class Config
 // A config for user-configurable parameters of NEAT.
@@ -19,7 +17,6 @@ public class Config
     public Type SpeciesSetType { get; }
     public Type StagnationType { get; }
     public Dictionary<string, object> ConfigValues { get; private set; }
-
 
     public Config(Type genomeType, Type reproductionType, Type speciesSetType, Type stagnationType, string fileName)
     {
@@ -76,10 +73,10 @@ public class Config
 
                     if (config.Count > 0)
                     {
-                        var lastSection = config.Keys.Last(); 
+                        var lastSection = config.Keys.Last();
                         if (config.TryGetValue(lastSection, out var sectionConfig))
                         {
-                            sectionConfig[key] = value; 
+                            sectionConfig[key] = value;
                         }
                     }
                 }
@@ -132,9 +129,9 @@ public class Config
         {
             throw new Exception($"Missing section for {sectionName}");
         }
-        
+
         var instance = Activator.CreateInstance(configType);
-        
+
         var parseConfigMethod = configType.GetMethod("ParseConfig");
         if (parseConfigMethod == null)
         {

@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-
-namespace RTNEATOffline.Genome
+namespace RTNEAT_offline.NEAT.Genome
 {
     // Configuration class for the Genome
     public class DefaultGenomeConfig

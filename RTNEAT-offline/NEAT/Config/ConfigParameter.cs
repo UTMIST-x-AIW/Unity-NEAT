@@ -1,6 +1,4 @@
-﻿using RTNEAT_Offline.NEAT.config;
-
-namespace defaultObjectnamespace;
+﻿namespace RTNEAT_offline.NEAT.Configuration;
 
 public class ConfigParameter
 {
@@ -114,6 +112,6 @@ public class ConfigParameter
     {
         return this.defaultObject;
     }
-    
+
     //Omitted `write_pretty_params`
 }

@@ -1,13 +1,12 @@
-﻿using defaultObjectnamespace;
+﻿namespace RTNEAT_offline.NEAT.Configuration;
 
-namespace RTNEAT_offline.NEAT.Config;
 using System.Collections.Generic;
 using System.Linq;
 
 public class DefaultClassConfig
 {
     private readonly Dictionary<string, object> _params = new();
-    public DefaultClassConfig(Dictionary<string, object> paramDict , List<ConfigParameter> paramList)
+    public DefaultClassConfig(Dictionary<string, object> paramDict, List<ConfigParameter> paramList)
     {
         var paramListNames = new List<string>();
 
@@ -15,7 +14,7 @@ public class DefaultClassConfig
         {
             _params[param.getname()] = param.Interpret(paramDict);
         }
-        
+
         var unknownList = paramDict.Keys.Where(key => !paramListNames.Contains(key)).ToList();
         if (unknownList.Count > 0)
         {

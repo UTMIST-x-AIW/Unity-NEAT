@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-
-namespace RTNEATOffline.Genome
+namespace RTNEAT_offline.NEAT.Genome
 {
     public class DefaultGenome
     {
@@ -128,9 +123,6 @@ namespace RTNEATOffline.Genome
                 }
             }
         }
-
-
-
 
         public void ConfigureCrossover(DefaultGenome genome1, DefaultGenome genome2, DefaultGenomeConfig config)
         {
@@ -588,9 +580,9 @@ namespace RTNEATOffline.Genome
         }
 
         public static (Dictionary<int, NodeGene>, Dictionary<(int, int), ConnectionGene>) GetPrunedGenes(
-            Dictionary<int, NodeGene> nodeGenes, 
-            Dictionary<(int, int), ConnectionGene> connectionGenes, 
-            List<int> inputKeys, 
+            Dictionary<int, NodeGene> nodeGenes,
+            Dictionary<(int, int), ConnectionGene> connectionGenes,
+            List<int> inputKeys,
             List<int> outputKeys)
         {
             var usedNodes = RequiredForOutput(inputKeys, outputKeys, connectionGenes);
