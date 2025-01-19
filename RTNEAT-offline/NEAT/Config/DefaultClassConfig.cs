@@ -1,6 +1,6 @@
-﻿using defaultObjectnamespace;
+namespace RTNEAT_offline.NEAT.Configuration;
 
-namespace RTNEAT_offline.NEAT.Config;
+
 using System.Collections.Generic;
 using System.Linq;
 
