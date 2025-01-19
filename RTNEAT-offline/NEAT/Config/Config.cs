@@ -1,6 +1,4 @@
-﻿using defaultObjectnamespace;
-
-namespace DefaultNamespace;
+namespace RTNEAT_offline.NEAT.Configuration;
 
 public class Config
 // A config for user-configurable parameters of NEAT.
