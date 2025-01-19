@@ -87,11 +87,11 @@ public class Population(/*object*/){
                     Genome best = null;
                     foreach(var genome in _population.Values)
                     {
-                        if !genome.Fitness.HasValue{
+                        if (!genome.Fitness.HasValue){
                             throw new InvalidOperationException($"Genome {genome.ID} has no fitness value.");
                         }
 
-                        if best == null || genome.Fitness > best.Fitness
+                        if (best == null || genome.Fitness > best.Fitness)
                         {
                             best = genome;
                         }
@@ -100,12 +100,12 @@ public class Population(/*object*/){
 
 
                         // if exit condition is not met, run reproduction
-                        if !_config.NoFitnessTermination && best.Fitness >= _config.FitnessThreshold
+                        if (!_config.NoFitnessTermination && best.Fitness >= _config.FitnessThreshold)
                         {
                             _reproduction.Reproduce(_config, _population, _species, _generation);
-                            if reset_on_extinction
+                            if (reset_on_extinction)
                             {
-                                if _species.ToList().Count == 0
+                                if (_species.ToList().Count == 0)
                                 {
                                     throw new CompleteExtinctionException();
                                 }
