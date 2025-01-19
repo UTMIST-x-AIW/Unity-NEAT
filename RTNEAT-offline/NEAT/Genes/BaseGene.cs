@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+
+
 namespace RTNEAT_offline.NEAT.Genes
 {
     public abstract class BaseGene
@@ -33,7 +35,7 @@ namespace RTNEAT_offline.NEAT.Genes
             return !(left < right);
         }
 
-        public static void ParseConfig(Config config, Dictionary<string, object> paramDict)
+        public static void ParseConfig(Config.Config config, Dictionary<string, object> paramDict)
         {
             // Python code empty???
         }
@@ -67,7 +69,7 @@ namespace RTNEAT_offline.NEAT.Genes
             }
         }
 
-        public void InitAttributes(Config config)
+        public void InitAttributes(Config.Config config)
         {
             foreach (var attr in _geneAttributes)
             {
@@ -75,7 +77,7 @@ namespace RTNEAT_offline.NEAT.Genes
             }
         }
 
-        public void Mutate(Config config)
+        public void Mutate(Config.Config config)
         {
             foreach (var attr in _geneAttributes)
             {

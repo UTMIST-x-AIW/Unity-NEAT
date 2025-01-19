@@ -19,7 +19,7 @@ namespace RTNEAT_offline.NEAT.Genes
                 throw new ArgumentException($"DefaultConnectionGene key must be a tuple, not {key}");
         }
 
-        public float Distance(DefaultConnectionGene other, Config config)
+        public float Distance(DefaultConnectionGene other, Config.Config config)
         {
             float d = Math.Abs(Weight - other.Weight);
             if (Enabled != other.Enabled) d += 1.0f;

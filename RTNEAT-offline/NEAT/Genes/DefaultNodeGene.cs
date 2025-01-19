@@ -23,7 +23,7 @@ namespace RTNEAT_offline.NEAT.Genes
                 throw new ArgumentException($"DefaultNodeGene key must be an int, not {key}");
         }
 
-        public float Distance(DefaultNodeGene other, Config config)
+        public float Distance(DefaultNodeGene other, Config.Config config)
         {
             float d = Math.Abs(Bias - other.Bias) + Math.Abs(Response - other.Response);
             if (Activation != other.Activation) d += 1.0f;
