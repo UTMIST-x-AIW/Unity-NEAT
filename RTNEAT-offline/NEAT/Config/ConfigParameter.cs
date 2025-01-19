@@ -1,6 +1,4 @@
-﻿using RTNEAT_Offline.NEAT.config;
-
-namespace defaultObjectnamespace;
+namespace RTNEAT_offline.NEAT.Configuration;
 
 public class ConfigParameter
 {
