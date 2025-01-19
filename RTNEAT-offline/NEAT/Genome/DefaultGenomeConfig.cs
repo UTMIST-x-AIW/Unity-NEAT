@@ -1,4 +1,13 @@
+<<<<<<< HEAD
 namespace RTNEAT_offline.NEAT.Genome
+=======
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+
+namespace RTNEATOffline.NEAT.Genome
+>>>>>>> origin/master
 {
     // Configuration class for the Genome
     public class DefaultGenomeConfig

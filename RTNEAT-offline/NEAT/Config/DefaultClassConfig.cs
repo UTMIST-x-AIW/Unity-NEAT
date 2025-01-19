@@ -1,4 +1,4 @@
-﻿namespace RTNEAT_offline.NEAT.Configuration;
+namespace RTNEAT_offline.NEAT.Configuration;
 
 using System.Collections.Generic;
 using System.Linq;

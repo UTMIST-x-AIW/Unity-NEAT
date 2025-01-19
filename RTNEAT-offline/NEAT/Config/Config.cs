@@ -1,4 +1,4 @@
-﻿namespace RTNEAT_offline.NEAT.Configuration;
+namespace RTNEAT_offline.NEAT.Configuration;
 
 public class Config
 // A config for user-configurable parameters of NEAT.
