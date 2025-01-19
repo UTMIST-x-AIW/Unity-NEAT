@@ -24,6 +24,11 @@ namespace RTNEATOffline.NEAT.Reproduction
         // Initialize Individual Reproduction Params
 
         // !!! ParseConfig?? !!!
+
+        //Implement fitness calculation & stagnation 
+        
+
+
         public Reproduction(
             ReproductionConfigs config, 
             ReporterSet reporters, 
