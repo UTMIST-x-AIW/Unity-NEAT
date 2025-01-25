@@ -4,6 +4,11 @@ using System.IO;
 using System.Linq;
 using RTNEAT_offline.NEAT.Genes;
 using RTNEAT_offline.NEAT.Configuration;
+using RTNEAT_offline.NEAT.Activation;
+using RTNEAT_offline.NEAT.Aggregation;
+using RTNEAT_offline.NEAT.Species;
+using RTNEAT_offline.NEAT.Stagnation;
+using RTNEAT_offline.NEAT.Reproduction;
 
 namespace RTNEAT_offline.NEAT.Genome
 {
@@ -15,18 +20,27 @@ namespace RTNEAT_offline.NEAT.Genome
         public Dictionary<(int, int), DefaultConnectionGene> Connections { get; private set; }
         public Dictionary<int, DefaultNodeGene> Nodes { get; private set; }
         public float? Fitness { get; set; }
+        public DefaultGenomeConfig Config { get; private set; }
 
-        public DefaultGenome(int id)
+        public DefaultGenome(DefaultGenomeConfig config)
         {
-            Id = id;
-            Connections = new Dictionary<(int, int), DefaultConnectionGene>();
+            Config = config;
             Nodes = new Dictionary<int, DefaultNodeGene>();
+            Connections = new Dictionary<(int, int), DefaultConnectionGene>();
+            Fitness = null;
+        }
+
+        public DefaultGenome(DefaultGenomeConfig config, Dictionary<int, DefaultNodeGene> nodes, Dictionary<(int, int), DefaultConnectionGene> connections)
+        {
+            Config = config;
+            Nodes = nodes;
+            Connections = connections;
             Fitness = null;
         }
 
         public DefaultGenome Clone()
         {
-            var clone = new DefaultGenome(Id);
+            var clone = new DefaultGenome(Config);
             foreach (var node in Nodes)
             {
                 clone.Nodes[node.Key] = (DefaultNodeGene)node.Value.Clone();
@@ -43,7 +57,15 @@ namespace RTNEAT_offline.NEAT.Genome
         {
             paramDict["node_gene_type"] = typeof(DefaultNodeGene);
             paramDict["connection_gene_type"] = typeof(DefaultConnectionGene);
-            return new DefaultGenomeConfig(paramDict);
+            return new DefaultGenomeConfig(
+                typeof(DefaultGenome),
+                typeof(DefaultNodeGene),
+                typeof(DefaultConnectionGene),
+                typeof(DefaultReproduction),
+                typeof(DefaultSpeciesSet),
+                typeof(DefaultStagnation),
+                "neat-config.txt"
+            );
         }
 
         public static void WriteConfig(TextWriter writer, DefaultGenomeConfig config)
@@ -67,7 +89,9 @@ namespace RTNEAT_offline.NEAT.Genome
             {
                 var node = new DefaultNodeGene(i);  // Start at 0 for output nodes
                 node.ConfigureAttributes(null);
-                node.Bias = (float)(random.NextDouble() * 2 - 1);  // Random bias between -1 and 1
+                // Initialize bias using normal distribution
+                node.Bias = (float)(NextGaussian() * config.BiasInitStdev + config.BiasInitMean);
+                node.Bias = Math.Clamp(node.Bias, (float)config.BiasMinValue, (float)config.BiasMaxValue);
                 genome.Nodes[i] = node;
             }
 
@@ -78,7 +102,9 @@ namespace RTNEAT_offline.NEAT.Genome
                 {
                     var node = new DefaultNodeGene(i + config.NumOutputs);  // Continue from output nodes
                     node.ConfigureAttributes(null);
-                    node.Bias = (float)(random.NextDouble() * 2 - 1);  // Random bias between -1 and 1
+                    // Initialize bias using normal distribution
+                    node.Bias = (float)(NextGaussian() * config.BiasInitStdev + config.BiasInitMean);
+                    node.Bias = Math.Clamp(node.Bias, (float)config.BiasMinValue, (float)config.BiasMaxValue);
                     genome.Nodes[i + config.NumOutputs] = node;
                 }
             }
@@ -97,7 +123,9 @@ namespace RTNEAT_offline.NEAT.Genome
                         {
                             var conn = new DefaultConnectionGene((-i - 1, j));  // From input to output
                             conn.ConfigureAttributes(null);
-                            conn.Weight = (float)(random.NextDouble() * 2 - 1);  // Random weight between -1 and 1
+                            // Initialize weight using normal distribution
+                            conn.Weight = (float)(NextGaussian() * config.WeightInitStdev + config.WeightInitMean);
+                            conn.Weight = Math.Clamp(conn.Weight, (float)config.WeightMinValue, (float)config.WeightMaxValue);
                             conn.Enabled = true;
                             genome.Connections[(-i - 1, j)] = conn;
                         }
@@ -122,7 +150,9 @@ namespace RTNEAT_offline.NEAT.Genome
                         
                         var conn = new DefaultConnectionGene((fromNode, toNode));
                         conn.ConfigureAttributes(null);
-                        conn.Weight = (float)(random.NextDouble() * 2 - 1);  // Random weight between -1 and 1
+                        // Initialize weight using normal distribution
+                        conn.Weight = (float)(NextGaussian() * config.WeightInitStdev + config.WeightInitMean);
+                        conn.Weight = Math.Clamp(conn.Weight, (float)config.WeightMinValue, (float)config.WeightMaxValue);
                         conn.Enabled = true;
                         genome.Connections[(fromNode, toNode)] = conn;
                     }
@@ -130,6 +160,14 @@ namespace RTNEAT_offline.NEAT.Genome
                 default:
                     throw new ArgumentException($"Unknown initial connectivity type: {config.InitialConnectivity}");
             }
+        }
+
+        // Box-Muller transform for generating normally distributed random numbers
+        private static double NextGaussian()
+        {
+            double u1 = 1.0 - random.NextDouble();
+            double u2 = 1.0 - random.NextDouble();
+            return Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
         }
 
         public void Mutate(DefaultGenomeConfig config)
@@ -141,12 +179,15 @@ namespace RTNEAT_offline.NEAT.Genome
                 {
                     if (random.NextDouble() < config.WeightReplaceRate)
                     {
-                        conn.Weight = (float)(random.NextDouble() * 4 - 2);
-                    }
+                        // Replace with a new random weight using normal distribution
+                        conn.Weight = (float)(NextGaussian() * config.WeightInitStdev + config.WeightInitMean);
+                }
                     else
-                    {
-                        conn.Weight += (float)(random.NextDouble() * 2 - 1) * (float)config.WeightMutatePower;
+                {
+                        // Perturb the weight
+                        conn.Weight += (float)(NextGaussian() * config.WeightMutatePower);
                     }
+                    conn.Weight = Math.Clamp(conn.Weight, (float)config.WeightMinValue, (float)config.WeightMaxValue);
                 }
                 
                 if (random.NextDouble() < config.EnabledMutateRate)
@@ -160,10 +201,17 @@ namespace RTNEAT_offline.NEAT.Genome
             {
                 if (random.NextDouble() < config.BiasMutateRate)
                 {
-                    node.MutateAttributes(new Config
+                    if (random.NextDouble() < config.BiasReplaceRate)
                     {
-                        CompatibilityWeightCoefficient = (float)config.CompatibilityWeightCoefficient
-                    });
+                        // Replace with a new random bias using normal distribution
+                        node.Bias = (float)(NextGaussian() * config.BiasInitStdev + config.BiasInitMean);
+                    }
+                    else
+                    {
+                        // Perturb the bias
+                        node.Bias += (float)(NextGaussian() * config.BiasMutatePower);
+                    }
+                    node.Bias = Math.Clamp(node.Bias, (float)config.BiasMinValue, (float)config.BiasMaxValue);
                 }
             }
 
@@ -360,9 +408,9 @@ namespace RTNEAT_offline.NEAT.Genome
                 {
                     weightDiff += Math.Abs(Connections[key].Weight - other.Connections[key].Weight);
                     matchingGenes++;
-                }
-                else
-                {
+                    }
+                    else
+                    {
                     disjointDiff++;
                 }
             }
@@ -403,6 +451,52 @@ namespace RTNEAT_offline.NEAT.Genome
                 s += "\n\t" + c.ToString();
             }
             return s;
+        }
+
+        public DefaultGenome Crossover(DefaultGenome other)
+        {
+            // Create a new genome with the same configuration
+            var child = new DefaultGenome(Config);
+
+            // Inherit connection genes
+            foreach (var (key, gene1) in Connections)
+            {
+                if (other.Connections.TryGetValue(key, out var gene2))
+                {
+                    // Inherit randomly from either parent
+                    var selectedGene = random.NextDouble() < 0.5 ? gene1 : gene2;
+                    child.Connections[key] = (DefaultConnectionGene)selectedGene.Clone();
+                }
+                else
+                {
+                    // Inherit disjoint/excess gene from more fit parent
+                    if (Fitness > other.Fitness)
+                    {
+                        child.Connections[key] = (DefaultConnectionGene)gene1.Clone();
+                    }
+                }
+            }
+
+            // Inherit node genes
+            foreach (var (key, gene1) in Nodes)
+            {
+                if (other.Nodes.TryGetValue(key, out var gene2))
+                {
+                    // Inherit randomly from either parent
+                    var selectedGene = random.NextDouble() < 0.5 ? gene1 : gene2;
+                    child.Nodes[key] = (DefaultNodeGene)selectedGene.Clone();
+                }
+                else
+                {
+                    // Inherit disjoint/excess gene from more fit parent
+                    if (Fitness > other.Fitness)
+                    {
+                        child.Nodes[key] = (DefaultNodeGene)gene1.Clone();
+                    }
+                }
+            }
+
+            return child;
         }
     }
 }

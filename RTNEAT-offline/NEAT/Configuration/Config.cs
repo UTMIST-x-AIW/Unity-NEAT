@@ -8,16 +8,18 @@ namespace RTNEAT_offline.NEAT.Configuration
 {
     public class Config
     {
-        private static readonly List<ConfigParameter> Parameters = new List<ConfigParameter>
+        protected static readonly List<ConfigParameter> Parameters = new List<ConfigParameter>
         {
             new ConfigParameter("pop_size", typeof(int)),
             new ConfigParameter("fitness_criterion", typeof(string)),
             new ConfigParameter("fitness_threshold", typeof(float)),
             new ConfigParameter("reset_on_extinction", typeof(bool)),
-            new ConfigParameter("no_fitness_termination", typeof(bool), false)
+            new ConfigParameter("no_fitness_termination", typeof(bool), false),
+            new ConfigParameter("max_stagnation", typeof(int), 15),
+            new ConfigParameter("species_distance_threshold", typeof(float), 3.0f)
         };
 
-        private Dictionary<string, object> ConfigValues { get; set; }
+        protected Dictionary<string, object> ConfigValues { get; set; }
 
         // Properties from the original Config class
         public Type? GenomeType { get; private set; }
@@ -42,6 +44,7 @@ namespace RTNEAT_offline.NEAT.Configuration
         public float WeightReplaceMutateRate { get; set; } = 0.1f;
         public float DisableMutateRate { get; set; } = 0.01f;
         public float EnableMutateRate { get; set; } = 0.01f;
+        public int MaxStagnation { get; private set; }
 
         public Config()
         {
@@ -71,7 +74,7 @@ namespace RTNEAT_offline.NEAT.Configuration
             StagnationConfig = ParseSubConfig(StagnationType, config);
         }
 
-        public void Load(string filename)
+        public virtual void Load(string filename)
         {
             if (filename.EndsWith(".json"))
             {
@@ -137,38 +140,42 @@ namespace RTNEAT_offline.NEAT.Configuration
         private Dictionary<string, Dictionary<string, string>> ParseConfigFile(string filename)
         {
             var config = new Dictionary<string, Dictionary<string, string>>();
+            string currentSection = "";
 
             foreach (var line in File.ReadLines(filename))
             {
-                if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                var trimmedLine = line.Trim();
+                if (string.IsNullOrWhiteSpace(trimmedLine) || trimmedLine.StartsWith("#"))
                     continue;
 
-                if (line.StartsWith("[") && line.EndsWith("]"))
+                if (trimmedLine.StartsWith("[") && trimmedLine.EndsWith("]"))
                 {
-                    var section = line.Trim('[', ']');
-                    if (!config.ContainsKey(section))
+                    currentSection = trimmedLine.Substring(1, trimmedLine.Length - 2);
+                    if (!config.ContainsKey(currentSection))
                     {
-                        config[section] = new Dictionary<string, string>();
+                        config[currentSection] = new Dictionary<string, string>();
                     }
+                    continue;
                 }
-                else
-                {
-                    var keyValue = line.Split('=', 2);
-                    if (keyValue.Length == 2)
-                    {
-                        var key = keyValue[0].Trim();
-                        var value = keyValue[1].Trim();
 
-                        if (config.Count > 0)
-                        {
-                            var lastSection = config.Keys.Last();
-                            if (config.TryGetValue(lastSection, out var sectionConfig))
-                            {
-                                sectionConfig[key] = value;
-                            }
-                        }
-                    }
+                if (string.IsNullOrEmpty(currentSection))
+                    continue;
+
+                var parts = trimmedLine.Split('=', 2);
+                if (parts.Length != 2)
+                    continue;
+
+                var key = parts[0].Trim();
+                var value = parts[1].Trim();
+
+                // Remove any inline comments
+                var commentIndex = value.IndexOf('#');
+                if (commentIndex >= 0)
+                {
+                    value = value.Substring(0, commentIndex).Trim();
                 }
+
+                config[currentSection][key] = value;
             }
 
             return config;
@@ -235,6 +242,22 @@ namespace RTNEAT_offline.NEAT.Configuration
                 }
             }
             writer.WriteLine();
+        }
+
+        public virtual void LoadFromParameters(Dictionary<string, string> parameters)
+        {
+            foreach (var param in Parameters)
+            {
+                if (parameters.TryGetValue(param.Name, out var value))
+                {
+                    ConfigValues[param.Name] = Convert.ChangeType(value, param.ValueType);
+                }
+            }
+        }
+
+        public virtual List<ConfigParameter> GetConfigParameters()
+        {
+            return new List<ConfigParameter>(Parameters);
         }
     }
 } 

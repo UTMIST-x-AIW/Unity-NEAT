@@ -1,49 +1,71 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using RTNEAT_offline.NEAT.Configuration;
 using RTNEAT_offline.NEAT.Genome;
 using RTNEAT_offline.NEAT.Genes;
+using RTNEAT_offline.NEAT.Species;
+using RTNEAT_offline.NEAT.Stagnation;
+using RTNEAT_offline.NEAT.Reproduction;
 
 namespace RTNEAT_offline.NEAT.Tests
 {
     public class XORTest
     {
-        private static readonly List<(float[] inputs, float expected)> XORDataset = new()
+        private static readonly (float[], float[])[] Dataset = new[]
         {
-            (new float[] { 0, 0 }, 0),
-            (new float[] { 0, 1 }, 1),
-            (new float[] { 1, 0 }, 1),
-            (new float[] { 1, 1 }, 0)
+            (new[] { 0f, 0f }, new[] { 0f }),
+            (new[] { 0f, 1f }, new[] { 1f }),
+            (new[] { 1f, 0f }, new[] { 1f }),
+            (new[] { 1f, 1f }, new[] { 0f })
         };
 
         public static void RunTest()
         {
-            // Configure NEAT parameters
-            var config = new DefaultGenomeConfig(new Dictionary<string, object>
+            var config = new DefaultGenomeConfig(
+                typeof(DefaultGenome),
+                typeof(DefaultNodeGene),
+                typeof(DefaultConnectionGene),
+                typeof(DefaultReproduction),
+                typeof(DefaultSpeciesSet),
+                typeof(DefaultStagnation),
+                "neat-config.txt"
+            );
+
+            // Set configuration parameters
+            config.LoadFromParameters(new Dictionary<string, string>
             {
-                { "num_inputs", 2 },
-                { "num_outputs", 1 },
-                { "num_hidden", 3 },
-                { "feed_forward", true },
-                { "compatibility_disjoint_coefficient", 1.0 },
-                { "compatibility_weight_coefficient", 0.5 },
-                { "conn_add_prob", 0.1 },
-                { "conn_delete_prob", 0.05 },
-                { "node_add_prob", 0.05 },
-                { "node_delete_prob", 0.03 },
-                { "weight_mutate_rate", 0.9 },
-                { "weight_replace_rate", 0.1 },
-                { "weight_mutate_power", 0.5 },
-                { "enabled_mutate_rate", 0.05 },
-                { "bias_mutate_rate", 0.8 },
+                { "num_inputs", "2" },
+                { "num_outputs", "1" },
+                { "num_hidden", "0" },  // Start with no hidden nodes
+                { "feed_forward", "true" },
+                { "compatibility_disjoint_coefficient", "1.0" },
+                { "compatibility_weight_coefficient", "0.5" },
+                { "conn_add_prob", "0.5" },
+                { "conn_delete_prob", "0.5" },
+                { "node_add_prob", "0.2" },
+                { "node_delete_prob", "0.2" },
+                { "weight_mutate_rate", "0.8" },
+                { "weight_replace_rate", "0.1" },
+                { "weight_mutate_power", "0.5" },
+                { "enabled_mutate_rate", "0.01" },
+                { "bias_mutate_rate", "0.7" },
+                { "bias_init_mean", "0.0" },
+                { "bias_init_stdev", "1.0" },
+                { "bias_min_value", "-30.0" },
+                { "bias_max_value", "30.0" },
+                { "weight_init_mean", "0.0" },
+                { "weight_init_stdev", "1.0" },
+                { "weight_min_value", "-30.0" },
+                { "weight_max_value", "30.0" },
                 { "initial_connection", "full" }
             });
 
             // Create initial population
             var population = new List<DefaultGenome>();
-            for (int i = 0; i < 200; i++)
+            for (int i = 0; i < 150; i++)  // Match Python's pop_size
             {
-                var genome = new DefaultGenome(i);
+                var genome = new DefaultGenome(config);
                 DefaultGenome.ConfigureNew(genome, config);
                 population.Add(genome);
             }
@@ -53,7 +75,7 @@ namespace RTNEAT_offline.NEAT.Tests
             float bestFitness = 0;
             DefaultGenome bestGenome = null;
 
-            while (generation < 500 && bestFitness < 3.9f)
+            while (generation < 300 && bestFitness < 3.9f)  // Match Python's parameters
             {
                 // Evaluate fitness for each genome
                 foreach (var genome in population)
@@ -70,10 +92,12 @@ namespace RTNEAT_offline.NEAT.Tests
                 // Create next generation
                 var nextGeneration = new List<DefaultGenome>();
 
-                // Elitism - keep best 2 performers
-                nextGeneration.Add(bestGenome.Clone());
-                var secondBest = population.OrderByDescending(g => g.Fitness).Skip(1).First();
-                nextGeneration.Add(secondBest.Clone());
+                // Elitism - keep best 2 performers (matching Python's elitism parameter)
+                var elites = population.OrderByDescending(g => g.Fitness).Take(2);
+                foreach (var elite in elites)
+                {
+                    nextGeneration.Add(elite.Clone());
+                }
 
                 // Create offspring through mutation and crossover
                 while (nextGeneration.Count < population.Count)
@@ -84,22 +108,14 @@ namespace RTNEAT_offline.NEAT.Tests
 
                     // Crossover
                     DefaultGenome child;
-                    if (Random.Shared.NextDouble() < 0.8)
+                    if (Random.Shared.NextDouble() < 0.8)  // Higher crossover rate
                     {
                         child = parent1.Clone();
-                        // Perform crossover by copying random connections from parent2
                         foreach (var conn in parent2.Connections)
                         {
                             if (Random.Shared.NextDouble() < 0.5)
                             {
-                                if (child.Connections.ContainsKey(conn.Key))
-                                {
-                                    child.Connections[conn.Key] = (DefaultConnectionGene)conn.Value.Clone();
-                                }
-                                else
-                                {
-                                    child.Connections[conn.Key] = (DefaultConnectionGene)conn.Value.Clone();
-                                }
+                                child.Connections[conn.Key] = (DefaultConnectionGene)conn.Value.Clone();
                             }
                         }
                     }
@@ -128,10 +144,10 @@ namespace RTNEAT_offline.NEAT.Tests
             if (bestGenome != null)
             {
                 Console.WriteLine("\nTesting best genome on XOR:");
-                foreach (var (inputs, expected) in XORDataset)
+                foreach (var (inputs, expected) in Dataset)
                 {
                     var output = ActivateNetwork(bestGenome, inputs, config);
-                    Console.WriteLine($"Input: {inputs[0]}, {inputs[1]} -> Output: {output[0]:F4} (Expected: {expected})");
+                    Console.WriteLine($"Input: {inputs[0]}, {inputs[1]} -> Output: {output[0]:F4} (Expected: {expected[0]})");
                 }
             }
         }
@@ -160,7 +176,7 @@ namespace RTNEAT_offline.NEAT.Tests
                         sum += nodeValues[fromNode] * conn.Weight;
                     }
                 }
-                nodeValues[node.Key] = (float)Math.Tanh(sum); // Using tanh as activation function
+                nodeValues[node.Key] = 1.0f / (1.0f + (float)Math.Exp(-sum)); // Sigmoid activation
             }
 
             // Return output values (first N nodes are output nodes)
@@ -173,14 +189,10 @@ namespace RTNEAT_offline.NEAT.Tests
         private static float EvaluateGenome(DefaultGenome genome, DefaultGenomeConfig config)
         {
             float fitness = 4.0f;
-            foreach (var (inputs, expected) in XORDataset)
+            foreach (var (inputs, expected) in Dataset)
             {
                 var output = ActivateNetwork(genome, inputs, config);
-                float error = Math.Abs(expected - output[0]);
-                if (error > 0.5f)
-                {
-                    fitness -= 1.0f;
-                }
+                fitness -= (float)Math.Pow(expected[0] - output[0], 2);  // Use squared error like Python
             }
             return fitness;
         }

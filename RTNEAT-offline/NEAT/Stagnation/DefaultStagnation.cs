@@ -2,65 +2,54 @@
 using System.Collections.Generic;
 using System.Linq;
 using RTNEAT_offline.NEAT.Configuration;
-using RTNEAT_offline.NEAT.Reporting;
+using RTNEAT_offline.NEAT.Genome;
 using RTNEAT_offline.NEAT.Species;
 
 namespace RTNEAT_offline.NEAT.Stagnation
 {
     public class DefaultStagnation
     {
-        private readonly Config config;
-        private readonly List<IReporter> reporters;
+        private readonly Config _config;
+        private readonly Dictionary<int, float> _speciesFitness;
+        private readonly Dictionary<int, int> _stagnationCount;
 
-        public DefaultStagnation(Config config, List<IReporter> reporters)
+        public DefaultStagnation(Config config)
         {
-            this.config = config;
-            this.reporters = reporters;
+            _config = config;
+            _speciesFitness = new Dictionary<int, float>();
+            _stagnationCount = new Dictionary<int, int>();
         }
 
-        public Dictionary<int, RTNEAT_offline.NEAT.Species.Species> UpdateSpecies(int generation, Dictionary<int, RTNEAT_offline.NEAT.Species.Species> species)
+        public List<int> UpdateStagnation(Dictionary<int, List<DefaultGenome>> species)
         {
-            reporters.ForEach(r => r.Info($"Updating species {generation}"));
+            var extinctSpecies = new List<int>();
 
-            // Get statistics for each species
-            var speciesFitness = new Dictionary<int, double>();
-            foreach (var (sid, s) in species)
+            foreach (var (speciesId, members) in species)
             {
-                if (s.Members.Count > 0)
+                if (!members.Any()) continue;
+
+                // Get the current species fitness (maximum fitness among its members)
+                float currentFitness = members.Max(m => m.Fitness ?? float.MinValue);
+
+                // If we haven't seen this species before, or if fitness has improved
+                if (!_speciesFitness.ContainsKey(speciesId) || currentFitness > _speciesFitness[speciesId])
                 {
-                    var memberFitness = s.Members.Values.Select(m => m.Fitness ?? 0.0).ToList();
-                    var meanFitness = memberFitness.Average();
-                    speciesFitness[sid] = meanFitness;
+                    _speciesFitness[speciesId] = currentFitness;
+                    _stagnationCount[speciesId] = 0;
+                }
+                else
+                {
+                    _stagnationCount[speciesId] = _stagnationCount.GetValueOrDefault(speciesId, 0) + 1;
+                }
+
+                // Check if species has stagnated
+                if (_stagnationCount[speciesId] >= _config.MaxStagnation)
+                {
+                    extinctSpecies.Add(speciesId);
                 }
             }
 
-            // No species had a valid fitness
-            if (!speciesFitness.Any())
-                return species;
-
-            // Compute adjusted fitness
-            var adjustedFitness = new Dictionary<int, double>();
-            foreach (var (sid, meanFitness) in speciesFitness)
-            {
-                var adjustedFit = meanFitness / species[sid].Members.Count;
-                adjustedFitness[sid] = adjustedFit;
-                species[sid].AdjustedFitness = adjustedFit;
-            }
-
-            // Update species fitness if improved
-            foreach (var (sid, s) in species)
-            {
-                var previousFitness = s.Fitness;
-                var currentFitness = speciesFitness[sid];
-                s.Fitness = currentFitness;
-
-                if (previousFitness == null || currentFitness > previousFitness)
-                {
-                    s.LastImproved = generation;
-                }
-            }
-
-            return species;
+            return extinctSpecies;
         }
     }
 }
