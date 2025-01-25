@@ -14,6 +14,7 @@ namespace NEAT
         private readonly Dictionary<int, Species.Species> _species;
         private int _generation;
         private readonly Random _random;
+        private int _nextNodeKey;  // Global innovation counter for node keys
 
         public Population(Config.Config config)
         {
@@ -22,6 +23,7 @@ namespace NEAT
             _species = new Dictionary<int, Species.Species>();
             _generation = 0;
             _random = new Random();
+            _nextNodeKey = 0;  // Will be initialized after creating input/output nodes
 
             CreateInitialPopulation();
         }
@@ -48,14 +50,17 @@ namespace NEAT
             for (int i = 0; i < numInputs; i++)
             {
                 genome.AddNode(new NodeGene(i, NodeType.Input));
+                _nextNodeKey = Math.Max(_nextNodeKey, i + 1);
             }
 
             // Add output nodes
             int numOutputs = _config.GetParameter("num_outputs", 1);
+            int firstOutputKey = _nextNodeKey;  // Store the key of the first output node
             for (int i = 0; i < numOutputs; i++)
             {
-                genome.AddNode(new NodeGene(numInputs + i, NodeType.Output));
+                genome.AddNode(new NodeGene(_nextNodeKey + i, NodeType.Output));
             }
+            _nextNodeKey += numOutputs;
 
             // Add initial connections
             int connectionKey = 0;
@@ -64,7 +69,7 @@ namespace NEAT
                 for (int output = 0; output < numOutputs; output++)
                 {
                     var weight = (_random.NextDouble() * 4) - 2; // Random weight between -2 and 2
-                    genome.AddConnection(new ConnectionGene(connectionKey++, input, numInputs + output, weight));
+                    genome.AddConnection(new ConnectionGene(connectionKey++, input, firstOutputKey + output, weight));
                 }
             }
 
@@ -235,9 +240,25 @@ namespace NEAT
                     var conn = genome.Connections.Values.ElementAt(_random.Next(genome.Connections.Count));
                     conn.Enabled = false;
 
-                    // Create new node
-                    var newNodeKey = genome.Nodes.Count;
+                    // Create new node with global innovation number
+                    var newNodeKey = _nextNodeKey++;
+                    var sourceNode = genome.Nodes[conn.InputKey];
+                    var targetNode = genome.Nodes[conn.OutputKey];
+                    
+                    // Place new node in a layer between source and target
                     var newNode = new NodeGene(newNodeKey, NodeType.Hidden);
+                    if (targetNode.Type == NodeType.Output)
+                    {
+                        newNode.Layer = sourceNode.Layer + 1;
+                    }
+                    else
+                    {
+                        newNode.Layer = (sourceNode.Layer + targetNode.Layer) / 2;
+                        if (newNode.Layer == sourceNode.Layer)
+                        {
+                            newNode.Layer = sourceNode.Layer + 1;
+                        }
+                    }
                     genome.AddNode(newNode);
 
                     // Create two new connections
@@ -266,11 +287,18 @@ namespace NEAT
                 {
                     var sourceKey = genome.Nodes.Keys.ElementAt(_random.Next(genome.Nodes.Count));
                     var targetKey = genome.Nodes.Keys.ElementAt(_random.Next(genome.Nodes.Count));
+                    var sourceNode = genome.Nodes[sourceKey];
+                    var targetNode = genome.Nodes[targetKey];
 
-                    // Don't connect input to input, output to output, or create cycles
-                    if (genome.Nodes[sourceKey].Type == NodeType.Output ||
-                        genome.Nodes[targetKey].Type == NodeType.Input ||
-                        sourceKey == targetKey)
+                    // Enforce feedforward: source must be in a lower layer than target
+                    if (sourceNode.Layer >= targetNode.Layer)
+                    {
+                        continue;
+                    }
+
+                    // Don't connect input to input or output to output
+                    if (sourceNode.Type == NodeType.Output ||
+                        targetNode.Type == NodeType.Input)
                     {
                         continue;
                     }

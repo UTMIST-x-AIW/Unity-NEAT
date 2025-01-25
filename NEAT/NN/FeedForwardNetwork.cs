@@ -13,19 +13,72 @@ namespace NEAT.NN
         private readonly List<int> _outputNodes;
         private readonly List<int> _hiddenNodes;
         private readonly Dictionary<int, double> _nodeValues;
-        private readonly HashSet<int> _activating;
+        private readonly Dictionary<int, HashSet<int>> _incomingConnections;
 
         public FeedForwardNetwork(Dictionary<int, NodeGene> nodes, Dictionary<int, ConnectionGene> connections)
         {
             _nodes = nodes;
             _connections = connections;
             _nodeValues = new Dictionary<int, double>();
-            _activating = new HashSet<int>();
+            _incomingConnections = new Dictionary<int, HashSet<int>>();
 
-            // Categorize nodes
-            _inputNodes = nodes.Values.Where(n => n.Type == NodeType.Input).Select(n => n.Key).ToList();
-            _outputNodes = nodes.Values.Where(n => n.Type == NodeType.Output).Select(n => n.Key).ToList();
-            _hiddenNodes = nodes.Values.Where(n => n.Type == NodeType.Hidden).Select(n => n.Key).ToList();
+            // Initialize incoming connections
+            foreach (var node in nodes.Keys)
+            {
+                _incomingConnections[node] = new HashSet<int>();
+            }
+
+            // Build incoming connections map
+            foreach (var conn in connections.Values)
+            {
+                if (conn.Enabled)
+                {
+                    if (!_nodes.ContainsKey(conn.InputKey) || !_nodes.ContainsKey(conn.OutputKey))
+                    {
+                        continue;  // Skip invalid connections
+                    }
+                    _incomingConnections[conn.OutputKey].Add(conn.InputKey);
+                }
+            }
+
+            // Ensure proper layer assignments
+            bool layersChanged;
+            do
+            {
+                layersChanged = false;
+                foreach (var conn in connections.Values)
+                {
+                    if (conn.Enabled)
+                    {
+                        var sourceNode = _nodes[conn.InputKey];
+                        var targetNode = _nodes[conn.OutputKey];
+
+                        // Ensure target is in a higher layer than source
+                        if (sourceNode.Layer >= targetNode.Layer)
+                        {
+                            targetNode.Layer = sourceNode.Layer + 1;
+                            layersChanged = true;
+                        }
+                    }
+                }
+            } while (layersChanged);  // Repeat until no more changes are needed
+
+            // Sort nodes by layer
+            _inputNodes = nodes.Values.Where(n => n.Type == NodeType.Input)
+                              .OrderBy(n => n.Key)
+                              .Select(n => n.Key)
+                              .ToList();
+            
+            _hiddenNodes = nodes.Values.Where(n => n.Type == NodeType.Hidden)
+                               .OrderBy(n => n.Layer)
+                               .ThenBy(n => n.Key)
+                               .Select(n => n.Key)
+                               .ToList();
+            
+            _outputNodes = nodes.Values.Where(n => n.Type == NodeType.Output)
+                               .OrderBy(n => n.Key)
+                               .Select(n => n.Key)
+                               .ToList();
         }
 
         public double[] Activate(double[] inputs)
@@ -35,9 +88,8 @@ namespace NEAT.NN
                 throw new ArgumentException($"Expected {_inputNodes.Count} inputs, got {inputs.Length}");
             }
 
-            // Reset node values and activation tracking
+            // Reset node values
             _nodeValues.Clear();
-            _activating.Clear();
 
             // Set input values
             for (int i = 0; i < inputs.Length; i++)
@@ -45,13 +97,13 @@ namespace NEAT.NN
                 _nodeValues[_inputNodes[i]] = inputs[i];
             }
 
-            // Activate hidden nodes
+            // Process hidden nodes in layer order
             foreach (var nodeKey in _hiddenNodes)
             {
                 ActivateNode(nodeKey);
             }
 
-            // Activate output nodes
+            // Process output nodes
             foreach (var nodeKey in _outputNodes)
             {
                 ActivateNode(nodeKey);
@@ -63,35 +115,23 @@ namespace NEAT.NN
 
         private void ActivateNode(int nodeKey)
         {
-            // Return if node is already activated or is currently being activated (cycle detection)
-            if (_nodeValues.ContainsKey(nodeKey) || _activating.Contains(nodeKey))
-                return;
-
-            // Skip activation for input nodes (they should already have values)
-            if (_inputNodes.Contains(nodeKey))
-                return;
-
-            // Mark node as being activated
-            _activating.Add(nodeKey);
-
             double sum = 0.0;
-            foreach (var conn in _connections.Values)
+            
+            // Sum all incoming connections
+            foreach (var inputKey in _incomingConnections[nodeKey])
             {
-                if (conn.OutputKey == nodeKey && conn.Enabled)
+                var conn = _connections.Values.First(c => c.InputKey == inputKey && c.OutputKey == nodeKey && c.Enabled);
+                
+                // Input node must already have a value since we're feedforward
+                if (!_nodeValues.ContainsKey(inputKey))
                 {
-                    // Ensure input node is activated
-                    ActivateNode(conn.InputKey);
-
-                    // Skip if input node wasn't activated (could be due to cycle)
-                    if (!_nodeValues.ContainsKey(conn.InputKey))
-                        continue;
-
-                    sum += conn.Weight * _nodeValues[conn.InputKey];
+                    throw new InvalidOperationException($"Node {inputKey} should have been activated before node {nodeKey}");
                 }
+                
+                sum += conn.Weight * _nodeValues[inputKey];
             }
 
             _nodeValues[nodeKey] = Sigmoid(sum);
-            _activating.Remove(nodeKey);
         }
 
         private static double Sigmoid(double x)

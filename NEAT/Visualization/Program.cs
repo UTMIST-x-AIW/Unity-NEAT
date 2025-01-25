@@ -26,7 +26,7 @@ public class Program
             var best = pop.GetBestGenome();
             Console.WriteLine($"Best fitness: {best.Fitness:F4}");
 
-            if (best.Fitness > 3.8)
+            if (best.Fitness > 3.5)
             {
                 winner = best;
                 break;

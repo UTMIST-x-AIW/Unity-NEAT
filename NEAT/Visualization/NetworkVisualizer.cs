@@ -28,9 +28,10 @@ public class NetworkVisualizer
         // Add connections
         foreach (var conn in genome.Connections.Values)
         {
-            string style = conn.Enabled ? "solid" : "dashed";
-            // Add weight as a label on the connection, formatted to 2 decimal places
-            sb.AppendLine($"  node{conn.InputKey} -> node{conn.OutputKey} [style={style}, label=\"{conn.Weight:F2}\"];");
+            if (conn.Enabled)
+            {
+                sb.AppendLine($"  node{conn.InputKey} -> node{conn.OutputKey} [label=\"{conn.Weight:F2}\"];");
+            }
         }
 
         sb.AppendLine("}");
@@ -40,5 +41,28 @@ public class NetworkVisualizer
     public static void SaveDotToFile(string dot, string filePath)
     {
         File.WriteAllText(filePath, dot);
+        
+        // Generate SVG using dot command
+        var svgPath = Path.ChangeExtension(filePath, ".svg");
+        var startInfo = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = "dot",
+            Arguments = $"-Tsvg \"{filePath}\" -o \"{svgPath}\"",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+        
+        using var process = System.Diagnostics.Process.Start(startInfo);
+        process?.WaitForExit();
+        
+        if (process?.ExitCode == 0)
+        {
+            Console.WriteLine($"SVG visualization saved to: {svgPath}");
+        }
+        else
+        {
+            Console.WriteLine("Failed to generate SVG visualization");
+        }
     }
 } 
