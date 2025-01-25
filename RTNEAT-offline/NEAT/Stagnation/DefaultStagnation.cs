@@ -1,76 +1,66 @@
-﻿namespace RTNEAT_offline.NEAT.Stagnation;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using RTNEAT_offline.NEAT.Configuration;
+using RTNEAT_offline.NEAT.Reporting;
+using RTNEAT_offline.NEAT.Species;
 
-public class DefaultStagnation
+namespace RTNEAT_offline.NEAT.Stagnation
 {
-    private Func<IEnumerable<double>, double> _speciesFitnessFunc;
-    private int _maxStagnation;
-    private int _speciesElitism;
-
-    // Constructor to initialize stagnation tracking with config values
-    public DefaultStagnation(Func<IEnumerable<double>, double> speciesFitnessFunc, int maxStagnation, int speciesElitism)
+    public class DefaultStagnation
     {
-        _speciesFitnessFunc = speciesFitnessFunc ?? throw new ArgumentNullException(nameof(speciesFitnessFunc));
-        _maxStagnation = maxStagnation;
-        _speciesElitism = speciesElitism;
-    }
+        private readonly Config config;
+        private readonly List<IReporter> reporters;
 
-    // The main method to update species fitness and track stagnation
-    public List<Tuple<string, Species, bool>> Update(DefaultSpeciesSet speciesSet, int generation)
-    {
-        var speciesData = new List<Tuple<string, Species>>();
-        var result = new List<Tuple<string, Species, bool>>();
-        int numNonStagnant = speciesSet.Species.Count;
-
-        // Update species' fitness and track stagnation
-        foreach (var speciesPair in speciesSet.Species)
+        public DefaultStagnation(Config config, List<IReporter> reporters)
         {
-            var species = speciesPair.Value;
-            double prevFitness = species.FitnessHistory.Any() ? species.FitnessHistory.Max() : double.MinValue;
-
-            species.Fitness = _speciesFitnessFunc(species.GetFitnesses());
-            species.FitnessHistory.Add(species.Fitness);
-
-            if (prevFitness == double.MinValue || species.Fitness > prevFitness)
-            {
-                species.LastImproved = generation;
-            }
-
-            speciesData.Add(new Tuple<string, Species>(speciesPair.Key, species));
+            this.config = config;
+            this.reporters = reporters;
         }
 
-        // Sort species by fitness in ascending order
-        speciesData = speciesData.OrderBy(x => x.Item2.Fitness).ToList();
-
-        List<double> speciesFitnesses = new List<double>();
-        foreach (var (sid, species) in speciesData)
+        public Dictionary<int, RTNEAT_offline.NEAT.Species.Species> UpdateSpecies(int generation, Dictionary<int, RTNEAT_offline.NEAT.Species.Species> species)
         {
-            int stagnantTime = generation - species.LastImproved;
-            bool isStagnant = false;
+            reporters.ForEach(r => r.Info($"Updating species {generation}"));
 
-            // Check if species is stagnant
-            if (numNonStagnant > _speciesElitism)
+            // Get statistics for each species
+            var speciesFitness = new Dictionary<int, double>();
+            foreach (var (sid, s) in species)
             {
-                isStagnant = stagnantTime >= _maxStagnation;
+                if (s.Members.Count > 0)
+                {
+                    var memberFitness = s.Members.Values.Select(m => m.Fitness ?? 0.0).ToList();
+                    var meanFitness = memberFitness.Average();
+                    speciesFitness[sid] = meanFitness;
+                }
             }
 
-            // Ensure we don't remove species below the elitism threshold
-            if ((speciesData.Count - speciesData.IndexOf(new Tuple<string, Species>(sid, species))) <= _speciesElitism)
+            // No species had a valid fitness
+            if (!speciesFitness.Any())
+                return species;
+
+            // Compute adjusted fitness
+            var adjustedFitness = new Dictionary<int, double>();
+            foreach (var (sid, meanFitness) in speciesFitness)
             {
-                isStagnant = false;
+                var adjustedFit = meanFitness / species[sid].Members.Count;
+                adjustedFitness[sid] = adjustedFit;
+                species[sid].AdjustedFitness = adjustedFit;
             }
 
-            if (isStagnant)
+            // Update species fitness if improved
+            foreach (var (sid, s) in species)
             {
-                numNonStagnant--;
+                var previousFitness = s.Fitness;
+                var currentFitness = speciesFitness[sid];
+                s.Fitness = currentFitness;
+
+                if (previousFitness == null || currentFitness > previousFitness)
+                {
+                    s.LastImproved = generation;
+                }
             }
 
-            result.Add(new Tuple<string, Species, bool>(sid, species, isStagnant));
-            speciesFitnesses.Add(species.Fitness);
+            return species;
         }
-
-        return result;
     }
 }

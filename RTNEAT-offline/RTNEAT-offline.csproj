@@ -6,11 +6,8 @@
         <RootNamespace>RTNEAT_offline</RootNamespace>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     </PropertyGroup>
-
-    <ItemGroup>
-      <Content Include="NEAT\species\species.csproj" />
-      <Content Include="NEAT\species\species.sln" />
-    </ItemGroup>
 
 </Project>

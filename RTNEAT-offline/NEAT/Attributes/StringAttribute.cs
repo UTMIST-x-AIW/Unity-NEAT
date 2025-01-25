@@ -2,77 +2,50 @@
 
 using System;
 using System.Collections.Generic;
+using RTNEAT_offline.NEAT.Configuration;
 
-public class StringAttribute : BaseAttribute
+public class StringAttribute : GeneAttribute
 {
-    // Config items specific to StringAttribute
-    private static readonly Dictionary<string, Tuple<Type, object>> _configItems = new()
-    {
-        { "default", new Tuple<Type, object>(typeof(string), "random") },
-        { "options", new Tuple<Type, object>(typeof(List<string>), null) },
-        { "mutate_rate", new Tuple<Type, object>(typeof(float), null) }
-    };
+    private readonly List<string> options;
+    private readonly float mutateRate;
+    private readonly Random random;
 
-    public StringAttribute(string name, Dictionary<string, object> defaultDict) 
-        : base(name, defaultDict)
+    public StringAttribute(string name, string defaultValue, List<string>? options = null, float mutateRate = 0.1f) 
+        : base(name, defaultValue)
     {
-    }
+        this.options = options ?? new List<string> { defaultValue };
+        this.mutateRate = mutateRate;
+        this.random = new Random();
 
-    public string InitValue(dynamic config)
-    {
-        string defaultValue = (string)config.GetType().GetProperty(ConfigItemName("default")).GetValue(config);
-
-        if (defaultValue.ToLower() == "none" || defaultValue.ToLower() == "random")
+        if (!this.options.Contains(defaultValue))
         {
-            var options = (List<string>)config.GetType().GetProperty(ConfigItemName("options")).GetValue(config);
-            return RandomChoice(options);
+            throw new ArgumentException($"Default value {defaultValue} not in options list for {Name}");
         }
-
-        return defaultValue;
     }
 
-    public string MutateValue(string value, dynamic config)
+    public override void MutateValue(Config config)
     {
-        float mutateRate = (float)config.GetType().GetProperty(ConfigItemName("mutate_rate")).GetValue(config);
-
-        if (mutateRate > 0)
+        if (random.NextDouble() < mutateRate)
         {
-            float r = RandomValue();
-            if (r < mutateRate)
+            var currentIndex = options.IndexOf((string)Value);
+            var newIndex = random.Next(options.Count - 1);
+            if (newIndex >= currentIndex)
             {
-                var options = (List<string>)config.GetType().GetProperty(ConfigItemName("options")).GetValue(config);
-                return RandomChoice(options);
+                newIndex++; // Skip the current value
             }
+            Value = options[newIndex];
         }
-
-        return value;
     }
 
-    public void Validate(dynamic config)
+    public override void Validate()
     {
-        string defaultValue = (string)config.GetType().GetProperty(ConfigItemName("default")).GetValue(config);
-
-        if (defaultValue.ToLower() != "none" && defaultValue.ToLower() != "random")
+        if (Value is not string value)
         {
-            var options = (List<string>)config.GetType().GetProperty(ConfigItemName("options")).GetValue(config);
-            if (!options.Contains(defaultValue))
-            {
-                throw new InvalidOperationException($"Invalid initial value '{defaultValue}' for {Name}");
-            }
+            throw new ArgumentException($"Value {Value} is not a string for {Name}");
         }
-    }
-
-    // Helper method for randomness (replace with your preferred random library)
-    private static string RandomChoice(List<string> options)
-    {
-        var rand = new Random();
-        int index = rand.Next(options.Count);
-        return options[index];
-    }
-
-    private static float RandomValue()
-    {
-        var rand = new Random();
-        return (float)rand.NextDouble();
+        if (!options.Contains(value))
+        {
+            throw new ArgumentException($"Value {value} not in options list for {Name}");
+        }
     }
 }

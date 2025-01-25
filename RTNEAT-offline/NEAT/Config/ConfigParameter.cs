@@ -2,15 +2,30 @@ namespace RTNEAT_offline.NEAT.Configuration;
 
 public class ConfigParameter
 {
-    private String name;
-    private Object valueType;
-    private Object defaultObject;
+    private string name;
+    private Type valueType;
+    private object? defaultObject;
+    private string? description;
 
-    public ConfigParameter(String name, Object valueType, Object defaultObject = null)
+    public string Name => name;
+    public Type ValueType => valueType;
+    public object? DefaultValue => defaultObject;
+    public string? Description => description;
+
+    public ConfigParameter(string name, Type valueType, object? defaultObject = null, string? description = null)
     {
         this.name = name;
         this.valueType = valueType;
         this.defaultObject = defaultObject;
+        this.description = description;
+    }
+
+    public ConfigParameter(string name, string type, string defaultValue, string? description = null)
+    {
+        this.name = name;
+        this.valueType = Type.GetType(type) ?? typeof(string);
+        this.defaultObject = defaultValue;
+        this.description = description;
     }
 
     public override string ToString()
@@ -81,16 +96,16 @@ public class ConfigParameter
             if (valueType == typeof(float))
                 return Convert.ToSingle(value);
             if (valueType == typeof(string))
-                return value.ToString();
+                return Convert.ToString(value) ?? string.Empty;
             if (valueType == typeof(List<string>))
-                return new List<string>(value.ToString().Split(' '));
-        }
-        catch
-        {
-            throw new Exception($"Error interpreting config item '{name}' with value {value} as {valueType}");
-        }
+                return ((string?)value)?.Split(' ').ToList() ?? new List<string>();
 
-        throw new InvalidOperationException($"Unsupported configuration type: {valueType}");
+            throw new InvalidOperationException($"Unsupported configuration type: {valueType}");
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Error interpreting parameter '{name}': {ex.Message}", ex);
+        }
     }
 
     public string Format(object value)

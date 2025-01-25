@@ -1,22 +1,25 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using RTNEAT_offline.NEAT.Configuration;
+using RTNEAT_offline.NEAT.Attributes;
 
 namespace RTNEAT_offline.NEAT.Genes
 {
     public abstract class BaseGene
     {
+        protected Dictionary<string, GeneAttribute> _geneAttributes;
         public object Key { get; private set; }
-        protected List<GeneAttribute> _geneAttributes;
 
         protected BaseGene(object key)
         {
             Key = key;
+            _geneAttributes = new Dictionary<string, GeneAttribute>();
         }
 
         public override string ToString()
         {
-            var attribs = new[] { "Key" }.Concat(_geneAttributes.Select(a => a.Name));
+            var attribs = new[] { "Key" }.Concat(_geneAttributes.Keys);
             var attribValues = attribs.Select(a => $"{a}={GetType().GetProperty(a)?.GetValue(this)}");
             return $"{GetType().Name}({string.Join(", ", attribValues)})";
         }
@@ -35,82 +38,98 @@ namespace RTNEAT_offline.NEAT.Genes
 
         public static void ParseConfig(Config config, Dictionary<string, object> paramDict)
         {
-            // Python code empty???
+            // This method should be implemented by derived classes if needed
         }
 
-        public static List<object> GetConfigParams()
+        public List<object> GetConfigParams()
         {
-            if (GeneAttributes == null)
-            {
-                throw new InvalidOperationException("GeneAttributes is not initialized. Make sure it is set correctly.");
-            }
-
             var paramsList = new List<object>();
-            foreach (var attribute in GeneAttributes)
+            foreach (var attribute in _geneAttributes.Values)
             {
-                paramsList.AddRange(attribute.GetConfigParams());
+                paramsList.Add(attribute);
             }
-
             return paramsList;
         }
 
-        public static void ValidateAttributes(object config)
+        public void ValidateAttributes(Config config)
         {
-            if (GeneAttributes == null)
+            foreach (var attribute in _geneAttributes.Values)
             {
-                throw new InvalidOperationException("GeneAttributes is not initialized. Make sure it is set correctly.");
-            }
-
-            foreach (var attribute in GeneAttributes)
-            {
-                attribute.Validate(config);
+                attribute.Validate();
             }
         }
 
-        public void InitAttributes(Config config)
+        public void ConfigureAttributes(Dictionary<string, object>? defaultValues = null)
         {
-            foreach (var attr in _geneAttributes)
+            foreach (var attr in _geneAttributes.Values)
             {
-                attr.InitValue(this, config);
+                if (defaultValues != null && defaultValues.TryGetValue(attr.Name, out var value))
+                {
+                    attr.InitValue(value);
+                }
+                else
+                {
+                    attr.InitValue(null);
+                }
             }
         }
 
-        public void Mutate(Config config)
+        public void MutateAttributes(Config config)
         {
-            foreach (var attr in _geneAttributes)
+            foreach (var attr in _geneAttributes.Values)
             {
-                attr.MutateValue(this, config);
+                attr.MutateValue(config);
             }
         }
 
-        public BaseGene Copy()
+        public void ValidateAttributes()
         {
-            var newGene = (BaseGene)Activator.CreateInstance(GetType(), Key);
-            foreach (var attr in _geneAttributes)
+            foreach (var attr in _geneAttributes.Values)
             {
-                var value = GetType().GetProperty(attr.Name)?.GetValue(this);
-                GetType().GetProperty(attr.Name)?.SetValue(newGene, value);
+                attr.Validate();
             }
-            return newGene;
         }
 
-        public BaseGene Crossover(BaseGene gene2)
+        public Dictionary<string, GeneAttribute> GetAttributes()
         {
-            if (!Key.Equals(gene2.Key))
-                throw new ArgumentException("Gene keys must match for crossover");
+            return new Dictionary<string, GeneAttribute>(_geneAttributes);
+        }
 
-            var random = new Random();
-            var newGene = (BaseGene)Activator.CreateInstance(GetType(), Key);
-
-            foreach (var attr in _geneAttributes)
+        public GeneAttribute GetAttribute(string name)
+        {
+            if (!_geneAttributes.TryGetValue(name, out var attribute))
             {
-                var value = random.NextDouble() > 0.5 ? 
-                    GetType().GetProperty(attr.Name)?.GetValue(this) :
-                    GetType().GetProperty(attr.Name)?.GetValue(gene2);
-                GetType().GetProperty(attr.Name)?.SetValue(newGene, value);
+                throw new KeyNotFoundException($"Attribute {name} not found");
             }
+            return attribute;
+        }
 
-            return newGene;
+        public void SetAttribute(string name, GeneAttribute attribute)
+        {
+            _geneAttributes[name] = attribute;
+        }
+
+        public object GetAttributeValue(string name)
+        {
+            return GetAttribute(name).Value;
+        }
+
+        public void SetAttributeValue(string name, object value)
+        {
+            GetAttribute(name).Value = value;
+        }
+
+        public abstract BaseGene Crossover(BaseGene other);
+
+        public virtual BaseGene Clone()
+        {
+            var clone = (BaseGene)MemberwiseClone();
+            clone._geneAttributes = new Dictionary<string, GeneAttribute>();
+            foreach (var (name, attr) in _geneAttributes)
+            {
+                clone.SetAttribute(name, attr.Clone());
+            }
+            return clone;
         }
     }
 }

@@ -2,8 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using RTNEAT_offline.NEAT.Configuration;
+using RTNEAT_offline.NEAT.Genes;
+using RTNEAT_offline.NEAT.Activation;
+using RTNEAT_offline.NEAT.Aggregation;
 
-namespace RTNEATOffline.NEAT.Genome
+namespace RTNEAT_offline.NEAT.Genome
 {
     // Configuration class for the Genome
     public class DefaultGenomeConfig
@@ -18,7 +22,7 @@ namespace RTNEATOffline.NEAT.Genome
 
         // Configuration parameters
         private readonly List<ConfigParameter> _params;
-        private IEnumerator<int> _nodeIndexer;
+        private IEnumerator<int>? _nodeIndexer;
 
         // Public properties
         public ActivationFunctionSet ActivationDefs { get; private set; }
@@ -32,12 +36,36 @@ namespace RTNEATOffline.NEAT.Genome
         public Type NodeGeneType { get; private set; }
         public Type ConnectionGeneType { get; private set; }
 
+        // Additional properties needed by DefaultGenome
+        public int NumInputs { get; private set; }
+        public int NumOutputs { get; private set; }
+        public int NumHidden { get; private set; }
+        public bool FeedForward { get; private set; }
+        public double CompatibilityDisjointCoefficient { get; private set; }
+        public double CompatibilityWeightCoefficient { get; private set; }
+        public double ConnAddProb { get; private set; }
+        public double ConnDeleteProb { get; private set; }
+        public double NodeAddProb { get; private set; }
+        public double NodeDeleteProb { get; private set; }
+        public double WeightMutateRate { get; private set; }
+        public double WeightReplaceRate { get; private set; }
+        public double WeightMutatePower { get; private set; }
+        public double EnabledMutateRate { get; private set; }
+        public double BiasMutateRate { get; private set; }
+        public string InitialConnectivity => InitialConnection;
+
         // Constructor for configuring the genome
         public DefaultGenomeConfig(Dictionary<string, object> parameters)
         {
             // Initialize function sets
             ActivationDefs = new ActivationFunctionSet();
             AggregationDefs = new AggregationFunctionSet();
+            InputKeys = new List<int>();
+            OutputKeys = new List<int>();
+            InitialConnection = "unconnected";
+            StructuralMutationSurer = "default";
+            NodeGeneType = typeof(DefaultNodeGene);
+            ConnectionGeneType = typeof(DefaultConnectionGene);
 
             // Define default parameters
             _params = new List<ConfigParameter>
@@ -52,34 +80,96 @@ namespace RTNEATOffline.NEAT.Genome
                 new("conn_delete_prob", typeof(double)),
                 new("node_add_prob", typeof(double)),
                 new("node_delete_prob", typeof(double)),
+                new("weight_mutate_rate", typeof(double), 0.8),
+                new("weight_replace_rate", typeof(double), 0.1),
+                new("weight_mutate_power", typeof(double), 0.5),
+                new("enabled_mutate_rate", typeof(double), 0.01),
+                new("bias_mutate_rate", typeof(double), 0.7),
                 new("single_structural_mutation", typeof(bool), "false"),
                 new("structural_mutation_surer", typeof(string), "default"),
                 new("initial_connection", typeof(string), "unconnected")
             };
 
             // Get node and connection types
-            NodeGeneType = (Type)parameters["node_gene_type"];
-            _params.AddRange(NodeGeneType.GetConfigParams());
-
-            ConnectionGeneType = (Type)parameters["connection_gene_type"];
-            _params.AddRange(ConnectionGeneType.GetConfigParams());
+            if (parameters.ContainsKey("node_gene_type"))
+                NodeGeneType = (Type)parameters["node_gene_type"];
+            if (parameters.ContainsKey("connection_gene_type"))
+                ConnectionGeneType = (Type)parameters["connection_gene_type"];
 
             // Assign parameters
             foreach (var param in _params)
             {
-                var value = param.Interpret(parameters[param.Name]);
-                typeof(DefaultGenomeConfig).GetProperty(param.Name)?.SetValue(this, value);
+                if (parameters.ContainsKey(param.getname()))
+                {
+                    var value = param.Interpret(parameters);
+                    switch (param.getname())
+                    {
+                        case "num_inputs":
+                            NumInputs = Convert.ToInt32(value);
+                            break;
+                        case "num_outputs":
+                            NumOutputs = Convert.ToInt32(value);
+                            break;
+                        case "num_hidden":
+                            NumHidden = Convert.ToInt32(value);
+                            break;
+                        case "feed_forward":
+                            FeedForward = Convert.ToBoolean(value);
+                            break;
+                        case "compatibility_disjoint_coefficient":
+                            CompatibilityDisjointCoefficient = Convert.ToDouble(value);
+                            break;
+                        case "compatibility_weight_coefficient":
+                            CompatibilityWeightCoefficient = Convert.ToDouble(value);
+                            break;
+                        case "conn_add_prob":
+                            ConnAddProb = Convert.ToDouble(value);
+                            break;
+                        case "conn_delete_prob":
+                            ConnDeleteProb = Convert.ToDouble(value);
+                            break;
+                        case "node_add_prob":
+                            NodeAddProb = Convert.ToDouble(value);
+                            break;
+                        case "node_delete_prob":
+                            NodeDeleteProb = Convert.ToDouble(value);
+                            break;
+                        case "weight_mutate_rate":
+                            WeightMutateRate = Convert.ToDouble(value);
+                            break;
+                        case "weight_replace_rate":
+                            WeightReplaceRate = Convert.ToDouble(value);
+                            break;
+                        case "weight_mutate_power":
+                            WeightMutatePower = Convert.ToDouble(value);
+                            break;
+                        case "enabled_mutate_rate":
+                            EnabledMutateRate = Convert.ToDouble(value);
+                            break;
+                        case "bias_mutate_rate":
+                            BiasMutateRate = Convert.ToDouble(value);
+                            break;
+                        case "single_structural_mutation":
+                            SingleStructuralMutation = Convert.ToBoolean(value);
+                            break;
+                        case "structural_mutation_surer":
+                            StructuralMutationSurer = value.ToString();
+                            break;
+                        case "initial_connection":
+                            InitialConnection = value.ToString();
+                            break;
+                    }
+                }
             }
 
-            // Validate attributes
-            NodeGeneType.ValidateAttributes(this);
-            ConnectionGeneType.ValidateAttributes(this);
-
             // Setup input and output keys
-            int numInputs = (int)parameters["num_inputs"];
-            int numOutputs = (int)parameters["num_outputs"];
-            InputKeys = Enumerable.Range(0, numInputs).Select(i => -i - 1).ToList();
-            OutputKeys = Enumerable.Range(0, numOutputs).ToList();
+            if (parameters.ContainsKey("num_inputs") && parameters.ContainsKey("num_outputs"))
+            {
+                int numInputs = Convert.ToInt32(parameters["num_inputs"]);
+                int numOutputs = Convert.ToInt32(parameters["num_outputs"]);
+                InputKeys = Enumerable.Range(0, numInputs).Select(i => -i - 1).ToList();
+                OutputKeys = Enumerable.Range(0, numOutputs).ToList();
+            }
 
             // Parse initial connection
             ConnectionFraction = null;
@@ -107,8 +197,6 @@ namespace RTNEATOffline.NEAT.Genome
                 "default" => "default",
                 _ => throw new Exception($"Invalid structural_mutation_surer: {StructuralMutationSurer}")
             };
-
-            _nodeIndexer = null;
         }
 
         // Add an activation function
@@ -138,11 +226,15 @@ namespace RTNEATOffline.NEAT.Genome
             {
                 writer.WriteLine($"initial_connection = {InitialConnection}");
             }
-            WritePrettyParams(writer, _params.Where(p => p.Name != "initial_connection"));
+
+            foreach (var param in _params.Where(p => p.getname() != "initial_connection"))
+            {
+                writer.WriteLine($"{param.getname()} = {param.getDefault()}");
+            }
         }
 
         // Get a new unique node key
-        public int GetNewNodeKey(Dictionary<int, NodeGene> nodeDict)
+        public int GetNewNodeKey(Dictionary<int, DefaultNodeGene> nodeDict)
         {
             if (_nodeIndexer == null)
             {
@@ -174,6 +266,36 @@ namespace RTNEATOffline.NEAT.Genome
                 "default" => SingleStructuralMutation,
                 _ => throw new Exception($"Invalid structural_mutation_surer: {StructuralMutationSurer}")
             };
+        }
+
+        // Helper method to check if a connection creates a cycle in a feed-forward network
+        public bool CreatesCycle(int inputNode, int outputNode, Dictionary<int, HashSet<int>> connections)
+        {
+            if (!FeedForward)
+                return false;
+
+            if (connections.ContainsKey(outputNode))
+            {
+                var visited = new HashSet<int>();
+                var stack = new Stack<int>();
+                stack.Push(outputNode);
+
+                while (stack.Count > 0)
+                {
+                    var node = stack.Pop();
+                    if (node == inputNode)
+                        return true;
+
+                    if (!visited.Contains(node) && connections.ContainsKey(node))
+                    {
+                        visited.Add(node);
+                        foreach (var nextNode in connections[node])
+                            stack.Push(nextNode);
+                    }
+                }
+            }
+
+            return false;
         }
     }
 }

@@ -1,90 +1,34 @@
-﻿namespace RTNEAT_offline.NEAT.Attributes;
+﻿using System;
+using RTNEAT_offline.NEAT.Configuration;
 
-using System;
-using System.Collections.Generic;
-
-public class BoolAttribute : BaseAttribute
+namespace RTNEAT_offline.NEAT.Attributes
 {
-    // Config items specific to BoolAttribute
-    private static readonly Dictionary<string, Tuple<Type, object>> _configItems = new()
+    public class BoolAttribute : GeneAttribute
     {
-        { "default", new Tuple<Type, object>(typeof(string), null) },
-        { "mutate_rate", new Tuple<Type, object>(typeof(float), null) },
-        { "rate_to_true_add", new Tuple<Type, object>(typeof(float), 0.0f) },
-        { "rate_to_false_add", new Tuple<Type, object>(typeof(float), 0.0f) }
-    };
+        private readonly float mutateRate;
+        private readonly Random random;
 
-    public BoolAttribute(string name, Dictionary<string, object> defaultDict) 
-        : base(name, defaultDict)
-    {
-    }
-
-    public bool InitValue(dynamic config)
-    {
-        string defaultValue = ((string)config.GetType().GetProperty(ConfigItemName("default")).GetValue(config)).ToLower();
-
-        switch (defaultValue)
+        public BoolAttribute(string name, bool defaultValue, float mutateRate = 0.1f) 
+            : base(name, defaultValue)
         {
-            case "1":
-            case "on":
-            case "yes":
-            case "true":
-                return true;
-            case "0":
-            case "off":
-            case "no":
-            case "false":
-                return false;
-            case "random":
-            case "none":
-                return RandomValue() < 0.5;
-            default:
-                throw new InvalidOperationException($"Unknown default value '{defaultValue}' for {Name}");
-        }
-    }
-
-    public bool MutateValue(bool value, dynamic config)
-    {
-        float mutateRate = (float)config.GetType().GetProperty(ConfigItemName("mutate_rate")).GetValue(config);
-
-        if (value)
-        {
-            mutateRate += (float)config.GetType().GetProperty(ConfigItemName("rate_to_false_add")).GetValue(config);
-        }
-        else
-        {
-            mutateRate += (float)config.GetType().GetProperty(ConfigItemName("rate_to_true_add")).GetValue(config);
+            this.mutateRate = mutateRate;
+            this.random = new Random();
         }
 
-        if (mutateRate > 0)
+        public override void MutateValue(Config config)
         {
-            float r = RandomValue();
-            if (r < mutateRate)
+            if (random.NextDouble() < mutateRate)
             {
-                // Perform a random flip with a 50% chance
-                return RandomValue() < 0.5;
+                Value = !(bool)Value;
             }
         }
 
-        return value;
-    }
-
-    public void Validate(dynamic config)
-    {
-        string defaultValue = ((string)config.GetType().GetProperty(ConfigItemName("default")).GetValue(config)).ToLower();
-
-        if (defaultValue != "1" && defaultValue != "on" && defaultValue != "yes" && defaultValue != "true" &&
-            defaultValue != "0" && defaultValue != "off" && defaultValue != "no" && defaultValue != "false" &&
-            defaultValue != "random" && defaultValue != "none")
+        public override void Validate()
         {
-            throw new InvalidOperationException($"Invalid default value for {Name}");
+            if (Value is not bool)
+            {
+                throw new ArgumentException($"Value {Value} is not a boolean for {Name}");
+            }
         }
-    }
-
-    // Helper method for randomness (replace with your preferred random library)
-    private static float RandomValue()
-    {
-        var rand = new Random();
-        return (float)rand.NextDouble();
     }
 }

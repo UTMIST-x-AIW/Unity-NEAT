@@ -2,23 +2,41 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using RTNEAT_offline.NEAT.Genes;
+using RTNEAT_offline.NEAT.Configuration;
 
-namespace RTNEATOffline.NEAT.Genome
+namespace RTNEAT_offline.NEAT.Genome
 {
     public class DefaultGenome
     {
-        // Properties matching Python implementation
-        public int Key { get; private set; }
-        public Dictionary<(int, int), ConnectionGene> Connections { get; private set; }
-        public Dictionary<int, NodeGene> Nodes { get; private set; }
-        public double? Fitness { get; set; }
+        private static readonly Random random = new Random();
+        
+        public int Id { get; private set; }
+        public Dictionary<(int, int), DefaultConnectionGene> Connections { get; private set; }
+        public Dictionary<int, DefaultNodeGene> Nodes { get; private set; }
+        public float? Fitness { get; set; }
 
-        public DefaultGenome(int? key)
+        public DefaultGenome(int id)
         {
-            Key = key ?? 0;
-            Connections = new Dictionary<(int, int), ConnectionGene>();
-            Nodes = new Dictionary<int, NodeGene>();
+            Id = id;
+            Connections = new Dictionary<(int, int), DefaultConnectionGene>();
+            Nodes = new Dictionary<int, DefaultNodeGene>();
             Fitness = null;
+        }
+
+        public DefaultGenome Clone()
+        {
+            var clone = new DefaultGenome(Id);
+            foreach (var node in Nodes)
+            {
+                clone.Nodes[node.Key] = (DefaultNodeGene)node.Value.Clone();
+            }
+            foreach (var conn in Connections)
+            {
+                clone.Connections[conn.Key] = (DefaultConnectionGene)conn.Value.Clone();
+            }
+            clone.Fitness = Fitness;
+            return clone;
         }
 
         public static DefaultGenomeConfig ParseConfig(Dictionary<string, object> paramDict)
@@ -33,369 +51,320 @@ namespace RTNEATOffline.NEAT.Genome
             config.Save(writer);
         }
 
-
-        public void ConfigureNew(DefaultGenomeConfig config)
+        public static void ConfigureNew(DefaultGenome genome, DefaultGenomeConfig config)
         {
-            // Create node genes for the output pins
-            foreach (var nodeKey in config.OutputKeys)
+            // Create input nodes
+            for (int i = 0; i < config.NumInputs; i++)
             {
-                Nodes[nodeKey] = CreateNode(config, nodeKey);
+                var node = new DefaultNodeGene(i);
+                node.ConfigureAttributes(null);
+                genome.Nodes[i] = node;
             }
 
-            // Add hidden nodes if requested
+            // Create output nodes
+            for (int i = 0; i < config.NumOutputs; i++)
+            {
+                var node = new DefaultNodeGene(i + config.NumInputs);
+                node.ConfigureAttributes(null);
+                genome.Nodes[i + config.NumInputs] = node;
+            }
+
+            // Create hidden nodes if specified
             if (config.NumHidden > 0)
             {
                 for (int i = 0; i < config.NumHidden; i++)
                 {
-                    var nodeKey = config.GetNewNodeKey(Nodes);
-                    if (Nodes.ContainsKey(nodeKey))
-                    {
-                        throw new InvalidOperationException($"Node key {nodeKey} already exists.");
-                    }
-                    var node = CreateNode(config, nodeKey);
-                    Nodes[nodeKey] = node;
+                    var node = new DefaultNodeGene(i + config.NumInputs + config.NumOutputs);
+                    node.ConfigureAttributes(null);
+                    genome.Nodes[i + config.NumInputs + config.NumOutputs] = node;
                 }
             }
 
             // Add connections based on initial connectivity type
-            if (config.InitialConnection.Contains("fs_neat"))
+            switch (config.InitialConnectivity?.ToLower())
             {
-                if (config.InitialConnection == "fs_neat_nohidden")
-                {
-                    ConnectFsNeatNoHidden(config);
-                }
-                else if (config.InitialConnection == "fs_neat_hidden")
-                {
-                    ConnectFsNeatHidden(config);
-                }
-                else
-                {
-                    if (config.NumHidden > 0)
+                case "fs_neat":
+                    // No initial connections
+                    break;
+                case "full":
+                    // Connect all input nodes to all output nodes
+                    for (int i = 0; i < config.NumInputs; i++)
                     {
-                        Console.Error.WriteLine(
-                            "Warning: initial_connection = fs_neat will not connect to hidden nodes;\n" +
-                            "\tif this is desired, set initial_connection = fs_neat_nohidden;\n" +
-                            "\tif not, set initial_connection = fs_neat_hidden"
-                        );
+                        for (int j = 0; j < config.NumOutputs; j++)
+                        {
+                            var conn = new DefaultConnectionGene((i, j + config.NumInputs));
+                            conn.ConfigureAttributes(null);
+                            conn.Weight = (float)(random.NextDouble() * 4 - 2); // Random weight between -2 and 2
+                            conn.Enabled = true;
+                            genome.Connections[(i, j + config.NumInputs)] = conn;
+                        }
                     }
-                    ConnectFsNeatNoHidden(config);
-                }
-            }
-            else if (config.InitialConnection.Contains("full"))
-            {
-                if (config.InitialConnection == "full_nodirect")
-                {
-                    ConnectFullNoDirect(config);
-                }
-                else if (config.InitialConnection == "full_direct")
-                {
-                    ConnectFullDirect(config);
-                }
-                else
-                {
-                    if (config.NumHidden > 0)
+                    break;
+                case "partial":
+                    // Connect a random subset of possible connections
+                    var possibleConnections = new List<(int, int)>();
+                    for (int fromNode = 0; fromNode < config.NumInputs; fromNode++)
                     {
-                        Console.Error.WriteLine(
-                            "Warning: initial_connection = full with hidden nodes will not do direct input-output connections;\n" +
-                            "\tif this is desired, set initial_connection = full_nodirect;\n" +
-                            "\tif not, set initial_connection = full_direct"
-                        );
+                        for (int toNode = 0; toNode < config.NumOutputs; toNode++)
+                        {
+                            possibleConnections.Add((fromNode, toNode + config.NumInputs));
+                        }
                     }
-                    ConnectFullNoDirect(config);
-                }
-            }
-            else if (config.InitialConnection.Contains("partial"))
-            {
-                if (config.InitialConnection == "partial_nodirect")
-                {
-                    ConnectPartialNoDirect(config);
-                }
-                else if (config.InitialConnection == "partial_direct")
-                {
-                    ConnectPartialDirect(config);
-                }
-                else
-                {
-                    if (config.NumHidden > 0)
+                    int numConnections = (int)(possibleConnections.Count * (config.ConnectionFraction ?? 0.5));
+                    for (int i = 0; i < numConnections; i++)
                     {
-                        Console.Error.WriteLine(
-                            $"Warning: initial_connection = partial with hidden nodes will not do direct input-output connections;\n" +
-                            $"\tif this is desired, set initial_connection = partial_nodirect {config.ConnectionFraction};\n" +
-                            $"\tif not, set initial_connection = partial_direct {config.ConnectionFraction}"
-                        );
+                        int index = random.Next(possibleConnections.Count);
+                        var (fromNode, toNode) = possibleConnections[index];
+                        possibleConnections.RemoveAt(index);
+                        
+                        var conn = new DefaultConnectionGene((fromNode, toNode));
+                        conn.ConfigureAttributes(null);
+                        conn.Weight = (float)(random.NextDouble() * 4 - 2);
+                        conn.Enabled = true;
+                        genome.Connections[(fromNode, toNode)] = conn;
                     }
-                    ConnectPartialNoDirect(config);
-                }
-            }
-        }
-
-
-
-
-        public void ConfigureCrossover(DefaultGenome genome1, DefaultGenome genome2, DefaultGenomeConfig config)
-        {
-            var parent1 = genome1.Fitness > genome2.Fitness ? genome1 : genome2;
-            var parent2 = genome1.Fitness > genome2.Fitness ? genome2 : genome1;
-
-            // Inherit connection genes
-            foreach (var (key, cg1) in parent1.Connections)
-            {
-                if (parent2.Connections.TryGetValue(key, out var cg2))
-                {
-                    // Homologous gene: combine genes from both parents
-                    Connections[key] = cg1.Crossover(cg2);
-                }
-                else
-                {
-                    // Excess or disjoint gene: copy from the fittest parent
-                    Connections[key] = cg1.Copy();
-                }
-            }
-
-            // Inherit node genes
-            foreach (var (key, ng1) in parent1.Nodes)
-            {
-                if (parent2.Nodes.TryGetValue(key, out var ng2))
-                {
-                    // Homologous gene: combine genes from both parents
-                    Nodes[key] = ng1.Crossover(ng2);
-                }
-                else
-                {
-                    // Excess or disjoint gene: copy from the fittest parent
-                    Nodes[key] = ng1.Copy();
-                }
+                    break;
+                default:
+                    throw new ArgumentException($"Unknown initial connectivity type: {config.InitialConnectivity}");
             }
         }
 
         public void Mutate(DefaultGenomeConfig config)
         {
-            if (config.SingleStructuralMutation)
-            {
-                var div = Math.Max(1, (config.NodeAddProb + config.NodeDeleteProb +
-                                     config.ConnAddProb + config.ConnDeleteProb));
-                var r = Random.Shared.NextDouble();
-                if (r < (config.NodeAddProb / div))
-                {
-                    MutateAddNode(config);
-                }
-                else if (r < ((config.NodeAddProb + config.NodeDeleteProb) / div))
-                {
-                    MutateDeleteNode(config);
-                }
-                else if (r < ((config.NodeAddProb + config.NodeDeleteProb +
-                              config.ConnAddProb) / div))
-                {
-                    MutateAddConnection(config);
-                }
-                else if (r < ((config.NodeAddProb + config.NodeDeleteProb +
-                              config.ConnAddProb + config.ConnDeleteProb) / div))
-                {
-                    MutateDeleteConnection();
-                }
-            }
-            else
-            {
-                if (Random.Shared.NextDouble() < config.NodeAddProb)
-                {
-                    MutateAddNode(config);
-                }
-                if (Random.Shared.NextDouble() < config.NodeDeleteProb)
-                {
-                    MutateDeleteNode(config);
-                }
-                if (Random.Shared.NextDouble() < config.ConnAddProb)
-                {
-                    MutateAddConnection(config);
-                }
-                if (Random.Shared.NextDouble() < config.ConnDeleteProb)
-                {
-                    MutateDeleteConnection();
-                }
-            }
-
             // Mutate connection genes
-            foreach (var cg in Connections.Values)
+            foreach (var conn in Connections.Values)
             {
-                cg.Mutate(config);
+                if (random.NextDouble() < config.WeightMutateRate)
+                {
+                    if (random.NextDouble() < config.WeightReplaceRate)
+                    {
+                        conn.Weight = (float)(random.NextDouble() * 4 - 2);
+                    }
+                    else
+                    {
+                        conn.Weight += (float)(random.NextDouble() * 2 - 1) * (float)config.WeightMutatePower;
+                    }
+                }
+                
+                if (random.NextDouble() < config.EnabledMutateRate)
+                {
+                    conn.Enabled = !conn.Enabled;
+                }
             }
 
-            // Mutate node genes (bias, response, etc.)
-            foreach (var ng in Nodes.Values)
+            // Mutate node genes
+            foreach (var node in Nodes.Values)
             {
-                ng.Mutate(config);
+                if (random.NextDouble() < config.BiasMutateRate)
+                {
+                    node.MutateAttributes(new Config
+                    {
+                        CompatibilityWeightCoefficient = (float)config.CompatibilityWeightCoefficient
+                    });
+                }
+            }
+
+            // Add node
+            if (random.NextDouble() < config.NodeAddProb)
+            {
+                AddNode(config);
+            }
+
+            // Add connection
+            if (random.NextDouble() < config.ConnAddProb)
+            {
+                AddConnection(config);
+            }
+
+            // Delete node
+            if (random.NextDouble() < config.NodeDeleteProb)
+            {
+                DeleteNode();
+            }
+
+            // Delete connection
+            if (random.NextDouble() < config.ConnDeleteProb)
+            {
+                DeleteConnection();
             }
         }
 
-        public void MutateAddNode(DefaultGenomeConfig config)
+        private void AddNode(DefaultGenomeConfig config)
         {
             if (!Connections.Any())
-            {
-                if (config.CheckStructuralMutationSure())
-                {
-                    MutateAddConnection(config);
-                }
                 return;
-            }
 
             // Choose a random connection to split
-            var connToSplit = Connections.Values.ElementAt(Random.Shared.Next(Connections.Count));
-            var newNodeId = config.GetNewNodeKey(Nodes);
-            var ng = CreateNode(config, newNodeId);
-            Nodes[newNodeId] = ng;
+            var conn = Connections.Values.ElementAt(random.Next(Connections.Count));
+            var connKey = conn.Key;
+            var (inNode, outNode) = ((ValueTuple<int, int>)connKey);
+            var newNodeId = Nodes.Keys.Max() + 1;
 
-            // Disable this connection and create two new connections
-            connToSplit.Enabled = false;
+            // Create new node
+            var newNode = new DefaultNodeGene(newNodeId);
+            newNode.ConfigureAttributes(null);
+            Nodes[newNodeId] = newNode;
 
-            var (i, o) = connToSplit.Key;
-            AddConnection(config, i, newNodeId, 1.0, true);
-            AddConnection(config, newNodeId, o, connToSplit.Weight, true);
+            // Create new connections
+            var inToNew = new DefaultConnectionGene((inNode, newNodeId));
+            inToNew.ConfigureAttributes(null);
+            inToNew.Weight = 1.0f;
+            inToNew.Enabled = true;
+
+            var newToOut = new DefaultConnectionGene((newNodeId, outNode));
+            newToOut.ConfigureAttributes(null);
+            newToOut.Weight = conn.Weight;
+            newToOut.Enabled = true;
+
+            // Disable old connection
+            conn.Enabled = false;
+
+            // Add new connections
+            Connections[(inNode, newNodeId)] = inToNew;
+            Connections[(newNodeId, outNode)] = newToOut;
         }
 
-        public void AddConnection(DefaultGenomeConfig config, int inputKey, int outputKey, double weight, bool enabled)
+        private void AddConnection(DefaultGenomeConfig config)
         {
-            var key = (inputKey, outputKey);
-            var connection = CreateConnection(config, inputKey, outputKey);
-            connection.InitAttributes(config);
-            connection.Weight = weight;
-            connection.Enabled = enabled;
-            Connections[key] = connection;
-        }
+            if (config.FeedForward && CreatesCycle())
+                return;
 
-        public void MutateAddConnection(DefaultGenomeConfig config)
-        {
-            var possibleOutputs = Nodes.Keys.ToList();
-            var outNode = possibleOutputs[Random.Shared.Next(possibleOutputs.Count)];
-
-            var possibleInputs = possibleOutputs.Concat(config.InputKeys).ToList();
-            var inNode = possibleInputs[Random.Shared.Next(possibleInputs.Count)];
-
-            // Don't duplicate connections
-            var key = (inNode, outNode);
-            if (Connections.ContainsKey(key))
+            // Get list of possible connections
+            var possibleConnections = new List<(int, int)>();
+            foreach (var fromNode in Nodes.Keys)
             {
-                if (config.CheckStructuralMutationSure())
+                foreach (var toNode in Nodes.Keys)
                 {
-                    Connections[key].Enabled = true;
+                    if (fromNode != toNode && 
+                        !Connections.ContainsKey((fromNode, toNode)) &&
+                        (!config.FeedForward || toNode > fromNode))
+                    {
+                        possibleConnections.Add((fromNode, toNode));
+                    }
                 }
-                return;
             }
 
-            // Don't allow connections between two output nodes
-            if (config.OutputKeys.Contains(inNode) && config.OutputKeys.Contains(outNode))
-            {
+            if (!possibleConnections.Any())
                 return;
-            }
 
-            // For feed-forward networks, avoid creating cycles
-            if (config.FeedForward && CreatesCycle(Connections.Keys.ToList(), key))
-            {
-                return;
-            }
+            // Choose a random possible connection
+            var (selectedFrom, selectedTo) = possibleConnections[random.Next(possibleConnections.Count)];
+            var newConn = new DefaultConnectionGene((selectedFrom, selectedTo));
+            newConn.ConfigureAttributes(null);
+            newConn.Weight = (float)(random.NextDouble() * 4 - 2);
+            newConn.Enabled = true;
 
-            var cg = CreateConnection(config, inNode, outNode);
-            Connections[cg.Key] = cg;
+            Connections[(selectedFrom, selectedTo)] = newConn;
         }
 
-        public int MutateDeleteNode(DefaultGenomeConfig config)
+        private void DeleteNode()
         {
-            // Do nothing if there are no non-output nodes
-            var availableNodes = Nodes.Keys.Where(k => !config.OutputKeys.Contains(k)).ToList();
-            if (!availableNodes.Any())
-            {
-                return -1;
-            }
+            if (Nodes.Count <= 2)
+                return;
 
-            var delKey = availableNodes[Random.Shared.Next(availableNodes.Count)];
+            // Don't delete input or output nodes
+            var deletableNodes = Nodes.Keys.Where(k => k >= Nodes.Count - 1).ToList();
+            if (!deletableNodes.Any())
+                return;
 
-            // Remove connections that use this node
-            var connectionsToDelete = Connections.Keys
-                .Where(k => k.Item1 == delKey || k.Item2 == delKey)
+            var nodeToDelete = deletableNodes[random.Next(deletableNodes.Count)];
+
+            // Remove all connections to/from this node
+            var connectionsToRemove = Connections.Keys
+                .Where(k => k.Item1 == nodeToDelete || k.Item2 == nodeToDelete)
                 .ToList();
 
-            foreach (var key in connectionsToDelete)
+            foreach (var key in connectionsToRemove)
             {
                 Connections.Remove(key);
             }
 
-            Nodes.Remove(delKey);
-            return delKey;
+            Nodes.Remove(nodeToDelete);
         }
 
-        public void MutateDeleteConnection()
+        private void DeleteConnection()
         {
-            if (Connections.Any())
-            {
-                var key = Connections.Keys.ElementAt(Random.Shared.Next(Connections.Count));
-                Connections.Remove(key);
-            }
+            if (!Connections.Any())
+                return;
+
+            var connToDelete = Connections.Keys.ElementAt(random.Next(Connections.Count));
+            Connections.Remove(connToDelete);
         }
 
-        public double Distance(DefaultGenome other, DefaultGenomeConfig config)
+        private bool CreatesCycle()
         {
-            // Compute node gene distance component
-            double nodeDistance = 0.0;
-            if (Nodes.Any() || other.Nodes.Any())
+            var visited = new HashSet<int>();
+            var stack = new HashSet<int>();
+
+            bool HasCycle(int node)
             {
-                int disjointNodes = 0;
-                foreach (var k2 in other.Nodes.Keys)
+                if (stack.Contains(node))
+                    return true;
+                if (visited.Contains(node))
+                    return false;
+
+                visited.Add(node);
+                stack.Add(node);
+
+                foreach (var conn in Connections.Where(c => c.Key.Item1 == node))
                 {
-                    if (!Nodes.ContainsKey(k2))
-                    {
-                        disjointNodes++;
-                    }
+                    if (HasCycle(conn.Key.Item2))
+                        return true;
                 }
 
-                foreach (var (k1, n1) in Nodes)
-                {
-                    if (other.Nodes.TryGetValue(k1, out var n2))
-                    {
-                        nodeDistance += n1.Distance(n2, config);
-                    }
-                    else
-                    {
-                        disjointNodes++;
-                    }
-                }
-
-                var maxNodes = Math.Max(Nodes.Count, other.Nodes.Count);
-                nodeDistance = (nodeDistance +
-                              (config.CompatibilityDisjointCoefficient *
-                               disjointNodes)) / maxNodes;
+                stack.Remove(node);
+                return false;
             }
 
-            // Compute connection gene differences
-            double connectionDistance = 0.0;
-            if (Connections.Any() || other.Connections.Any())
+            foreach (var node in Nodes.Keys)
             {
-                int disjointConnections = 0;
-                foreach (var k2 in other.Connections.Keys)
-                {
-                    if (!Connections.ContainsKey(k2))
-                    {
-                        disjointConnections++;
-                    }
-                }
-
-                foreach (var (k1, c1) in Connections)
-                {
-                    if (other.Connections.TryGetValue(k1, out var c2))
-                    {
-                        connectionDistance += c1.Distance(c2, config);
-                    }
-                    else
-                    {
-                        disjointConnections++;
-                    }
-                }
-
-                var maxConn = Math.Max(Connections.Count, other.Connections.Count);
-                connectionDistance = (connectionDistance +
-                                    (config.CompatibilityDisjointCoefficient *
-                                     disjointConnections)) / maxConn;
+                if (!visited.Contains(node) && HasCycle(node))
+                    return true;
             }
 
-            return nodeDistance + connectionDistance;
+            return false;
+        }
+
+        public float Distance(DefaultGenome other, DefaultGenomeConfig config)
+        {
+            float disjointDiff = 0;
+            float weightDiff = 0;
+            int matchingGenes = 0;
+
+            // Calculate connection gene differences
+            var allConnKeys = new HashSet<(int, int)>(Connections.Keys.Concat(other.Connections.Keys));
+            var allNodeKeys = new HashSet<int>(Nodes.Keys.Concat(other.Nodes.Keys));
+
+            foreach (var key in allConnKeys)
+            {
+                bool inThis = Connections.ContainsKey(key);
+                bool inOther = other.Connections.ContainsKey(key);
+
+                if (inThis && inOther)
+                {
+                    weightDiff += Math.Abs(Connections[key].Weight - other.Connections[key].Weight);
+                    matchingGenes++;
+                }
+                else
+                {
+                    disjointDiff++;
+                }
+            }
+
+            // Calculate node gene differences
+            foreach (var key in allNodeKeys)
+            {
+                if (Nodes.ContainsKey(key) != other.Nodes.ContainsKey(key))
+                {
+                    disjointDiff++;
+                }
+            }
+
+            float weightAvg = matchingGenes > 0 ? weightDiff / matchingGenes : 0;
+            int numGenes = Math.Max(allConnKeys.Count + allNodeKeys.Count, 1);
+
+            return (float)(config.CompatibilityDisjointCoefficient * disjointDiff / numGenes +
+                   config.CompatibilityWeightCoefficient * weightAvg);
         }
 
         public (int, int) Size()
@@ -406,7 +375,7 @@ namespace RTNEATOffline.NEAT.Genome
 
         public override string ToString()
         {
-            var s = $"Key: {Key}\nFitness: {Fitness}\nNodes:";
+            var s = $"Key: {Id}\nFitness: {Fitness}\nNodes:";
             foreach (var (k, ng) in Nodes)
             {
                 s += $"\n\t{k} {ng}";
@@ -419,207 +388,6 @@ namespace RTNEATOffline.NEAT.Genome
             }
             return s;
         }
-
-        private static NodeGene CreateNode(DefaultGenomeConfig config, int nodeId)
-        {
-            var node = new DefaultNodeGene(nodeId);
-            node.InitAttributes(config);
-            return node;
-        }
-
-        private static ConnectionGene CreateConnection(DefaultGenomeConfig config, int inputId, int outputId)
-        {
-            var connection = new DefaultConnectionGene((inputId, outputId));
-            connection.InitAttributes(config);
-            return connection;
-        }
-
-        private void ConnectFsNeatNoHidden(DefaultGenomeConfig config)
-        {
-            var inputId = config.InputKeys[Random.Shared.Next(config.InputKeys.Count)];
-            foreach (var outputId in config.OutputKeys)
-            {
-                var connection = CreateConnection(config, inputId, outputId);
-                Connections[connection.Key] = connection;
-            }
-        }
-
-        private void ConnectFsNeatHidden(DefaultGenomeConfig config)
-        {
-            var inputId = config.InputKeys[Random.Shared.Next(config.InputKeys.Count)];
-            foreach (var hiddenId in Nodes.Keys.Where(n => n != config.InputKeys[0]))
-            {
-                var connection = CreateConnection(config, inputId, hiddenId);
-                Connections[connection.Key] = connection;
-            }
-
-            foreach (var hiddenId in Nodes.Keys.Where(n => n != config.OutputKeys[0]))
-            {
-                foreach (var outputId in config.OutputKeys)
-                {
-                    var connection = CreateConnection(config, hiddenId, outputId);
-                    Connections[connection.Key] = connection;
-                }
-            }
-        }
-
-        public List<(int, int)> ComputeFullConnections(DefaultGenomeConfig config, bool direct)
-        {
-            // Identify hidden and output nodes
-            var hidden = Nodes.Keys.Where(i => !config.OutputKeys.Contains(i)).ToList();
-            var output = Nodes.Keys.Where(i => config.OutputKeys.Contains(i)).ToList();
-
-            List<(int, int)> connections = new List<(int, int)>();
-
-            if (hidden.Any())
-            {
-                // Connect each input to all hidden nodes
-                foreach (var inputId in config.InputKeys)
-                {
-                    foreach (var h in hidden)
-                    {
-                        connections.Add((inputId, h));
-                    }
-                }
-
-                // Connect each hidden node to all output nodes
-                foreach (var h in hidden)
-                {
-                    foreach (var outputId in output)
-                    {
-                        connections.Add((h, outputId));
-                    }
-                }
-            }
-
-            // If direct is true or there are no hidden nodes, connect each input to all output nodes
-            if (direct || !hidden.Any())
-            {
-                foreach (var inputId in config.InputKeys)
-                {
-                    foreach (var outputId in output)
-                    {
-                        connections.Add((inputId, outputId));
-                    }
-                }
-            }
-
-            // For recurrent genomes, include node self-connections
-            if (!config.FeedForward)
-            {
-                foreach (var i in Nodes.Keys)
-                {
-                    connections.Add((i, i));
-                }
-            }
-
-            return connections;
-        }
-
-
-
-        private void ConnectFullNoDirect(DefaultGenomeConfig config)
-        {
-            foreach (var inputId in config.InputKeys)
-            {
-                foreach (var outputId in config.OutputKeys)
-                {
-                    var connection = CreateConnection(config, inputId, outputId);
-                    Connections[connection.Key] = connection;
-                }
-            }
-        }
-
-
-        public void ConnectFullDirect(DefaultGenomeConfig config)
-        {
-            // Create a fully-connected genome, including direct input-output connections.
-            foreach (var (inputId, outputId) in ComputeFullConnections(config, true))
-            {
-                var connection = CreateConnection(config, inputId, outputId);
-                Connections[connection.Key] = connection;
-            }
-        }
-
-        public void ConnectPartialNoDirect(DefaultGenomeConfig config)
-        {
-            // Create a partially-connected genome, with (unless no hidden nodes) no direct input-output connections.
-            if (config.ConnectionFraction < 0 || config.ConnectionFraction > 1)
-            {
-                throw new ArgumentException("Connection fraction must be between 0 and 1");
-            }
-
-            var allConnections = ComputeFullConnections(config, false).ToList();
-            Shuffle(allConnections);
-            int numToAdd = (int)Math.Round(allConnections.Count * config.ConnectionFraction);
-            foreach (var (inputId, outputId) in allConnections.Take(numToAdd))
-            {
-                var connection = CreateConnection(config, inputId, outputId);
-                Connections[connection.Key] = connection;
-            }
-        }
-
-        public void ConnectPartialDirect(DefaultGenomeConfig config)
-        {
-            // Create a partially-connected genome, including (possibly) direct input-output connections.
-            if (config.ConnectionFraction < 0 || config.ConnectionFraction > 1)
-            {
-                throw new ArgumentException("Connection fraction must be between 0 and 1");
-            }
-
-            var allConnections = ComputeFullConnections(config, true).ToList();
-            Shuffle(allConnections);
-            int numToAdd = (int)Math.Round(allConnections.Count * config.ConnectionFraction);
-            foreach (var (inputId, outputId) in allConnections.Take(numToAdd))
-            {
-                var connection = CreateConnection(config, inputId, outputId);
-                Connections[connection.Key] = connection;
-            }
-        }
-
-        public DefaultGenome GetPrunedCopy(DefaultGenomeConfig genomeConfig)
-        {
-            // Get a pruned copy of the genome, removing unused node and connection genes.
-            var (usedNodeGenes, usedConnectionGenes) = GetPrunedGenes(Nodes, Connections, genomeConfig.InputKeys, genomeConfig.OutputKeys);
-            var newGenome = new DefaultGenome(null);
-            newGenome.Nodes = usedNodeGenes;
-            newGenome.Connections = usedConnectionGenes;
-            return newGenome;
-        }
-
-        public static (Dictionary<int, NodeGene>, Dictionary<(int, int), ConnectionGene>) GetPrunedGenes(
-            Dictionary<int, NodeGene> nodeGenes, 
-            Dictionary<(int, int), ConnectionGene> connectionGenes, 
-            List<int> inputKeys, 
-            List<int> outputKeys)
-        {
-            var usedNodes = RequiredForOutput(inputKeys, outputKeys, connectionGenes);
-            var usedPins = new HashSet<int>(usedNodes);
-            usedPins.UnionWith(inputKeys);
-
-            // Copy used nodes into a new genome.
-            var usedNodeGenes = new Dictionary<int, NodeGene>();
-            foreach (var nodeId in usedNodes)
-            {
-                usedNodeGenes[nodeId] = nodeGenes[nodeId].Clone();
-            }
-
-            // Copy enabled and used connections into the new genome.
-            var usedConnectionGenes = new Dictionary<(int, int), ConnectionGene>();
-            foreach (var (key, connectionGene) in connectionGenes)
-            {
-                var (inNodeId, outNodeId) = key;
-                if (connectionGene.Enabled && usedPins.Contains(inNodeId) && usedPins.Contains(outNodeId))
-                {
-                    usedConnectionGenes[key] = connectionGene.Clone();
-                }
-            }
-
-            return (usedNodeGenes, usedConnectionGenes);
-        }
-
-
-
     }
 }
 
