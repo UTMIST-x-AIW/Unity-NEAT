@@ -29,9 +29,8 @@ public class NetworkVisualizer
         foreach (var conn in genome.Connections.Values)
         {
             string style = conn.Enabled ? "solid" : "dashed";
-            string color = conn.Weight > 0 ? "black" : "red";
-            double width = Math.Abs(conn.Weight);
-            sb.AppendLine($"  node{conn.InputKey} -> node{conn.OutputKey} [style={style}, color={color}, penwidth={width:F2}];");
+            // Add weight as a label on the connection, formatted to 2 decimal places
+            sb.AppendLine($"  node{conn.InputKey} -> node{conn.OutputKey} [style={style}, label=\"{conn.Weight:F2}\"];");
         }
 
         sb.AppendLine("}");
