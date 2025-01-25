@@ -45,7 +45,7 @@ public class Program
             
             Console.WriteLine($"Best fitness: {best.Fitness:F4}");
 
-            if (best.Fitness > 3.8)
+            if (best.Fitness > 3.9)
             {
                 winner = best;
                 break;

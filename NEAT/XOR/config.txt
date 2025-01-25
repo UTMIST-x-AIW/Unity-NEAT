@@ -9,25 +9,25 @@ num_hidden = 0
 initial_connection = full_direct
 
 # Population Configuration
-population_size = 200
+population_size = 150
 
 # Species Configuration
-compatibility_threshold = 4.0
+compatibility_threshold = 3.0
 compatibility_disjoint_coefficient = 1.0
-compatibility_weight_coefficient = 0.4
+compatibility_weight_coefficient = 0.5
 
 # Stagnation Configuration
-max_stagnation = 25
+max_stagnation = 20
 species_elitism = 2
 
 # Reproduction Configuration
 elitism = 2
-survival_threshold = 0.3
+survival_threshold = 0.2
 
 # Mutation Configuration
-mutation_power = 2.0
-weight_mutation_rate = 0.9
-node_add_prob = 0.3
+mutation_power = 2.5
+weight_mutation_rate = 0.8
+node_add_prob = 0.2
 node_delete_prob = 0.2
-conn_add_prob = 0.6
-conn_delete_prob = 0.4 
+conn_add_prob = 0.5
+conn_delete_prob = 0.5 
