@@ -23,25 +23,25 @@ namespace RTNEAT_offline.NEAT.Tests
             {
                 { "num_inputs", 2 },
                 { "num_outputs", 1 },
-                { "num_hidden", 2 },
+                { "num_hidden", 3 },
                 { "feed_forward", true },
                 { "compatibility_disjoint_coefficient", 1.0 },
                 { "compatibility_weight_coefficient", 0.5 },
-                { "conn_add_prob", 0.05 },
+                { "conn_add_prob", 0.1 },
                 { "conn_delete_prob", 0.05 },
-                { "node_add_prob", 0.03 },
+                { "node_add_prob", 0.05 },
                 { "node_delete_prob", 0.03 },
-                { "weight_mutate_rate", 0.8 },
+                { "weight_mutate_rate", 0.9 },
                 { "weight_replace_rate", 0.1 },
                 { "weight_mutate_power", 0.5 },
-                { "enabled_mutate_rate", 0.01 },
-                { "bias_mutate_rate", 0.7 },
+                { "enabled_mutate_rate", 0.05 },
+                { "bias_mutate_rate", 0.8 },
                 { "initial_connection", "full" }
             });
 
             // Create initial population
             var population = new List<DefaultGenome>();
-            for (int i = 0; i < 150; i++)
+            for (int i = 0; i < 200; i++)
             {
                 var genome = new DefaultGenome(i);
                 DefaultGenome.ConfigureNew(genome, config);
@@ -53,7 +53,7 @@ namespace RTNEAT_offline.NEAT.Tests
             float bestFitness = 0;
             DefaultGenome bestGenome = null;
 
-            while (generation < 300 && bestFitness < 3.9f) // 3.9 is close enough to perfect (4.0)
+            while (generation < 500 && bestFitness < 3.9f)
             {
                 // Evaluate fitness for each genome
                 foreach (var genome in population)
@@ -70,8 +70,10 @@ namespace RTNEAT_offline.NEAT.Tests
                 // Create next generation
                 var nextGeneration = new List<DefaultGenome>();
 
-                // Elitism - keep best performer
+                // Elitism - keep best 2 performers
                 nextGeneration.Add(bestGenome.Clone());
+                var secondBest = population.OrderByDescending(g => g.Fitness).Skip(1).First();
+                nextGeneration.Add(secondBest.Clone());
 
                 // Create offspring through mutation and crossover
                 while (nextGeneration.Count < population.Count)
@@ -82,7 +84,7 @@ namespace RTNEAT_offline.NEAT.Tests
 
                     // Crossover
                     DefaultGenome child;
-                    if (Random.Shared.NextDouble() < 0.7) // 70% chance of crossover
+                    if (Random.Shared.NextDouble() < 0.8)
                     {
                         child = parent1.Clone();
                         // Perform crossover by copying random connections from parent2
@@ -91,6 +93,10 @@ namespace RTNEAT_offline.NEAT.Tests
                             if (Random.Shared.NextDouble() < 0.5)
                             {
                                 if (child.Connections.ContainsKey(conn.Key))
+                                {
+                                    child.Connections[conn.Key] = (DefaultConnectionGene)conn.Value.Clone();
+                                }
+                                else
                                 {
                                     child.Connections[conn.Key] = (DefaultConnectionGene)conn.Value.Clone();
                                 }

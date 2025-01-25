@@ -56,17 +56,19 @@ namespace RTNEAT_offline.NEAT.Genome
             // Create input nodes
             for (int i = 0; i < config.NumInputs; i++)
             {
-                var node = new DefaultNodeGene(i);
+                var node = new DefaultNodeGene(-i - 1);  // Negative IDs for input nodes
                 node.ConfigureAttributes(null);
-                genome.Nodes[i] = node;
+                node.Bias = 0;  // Input nodes have no bias
+                genome.Nodes[-i - 1] = node;
             }
 
             // Create output nodes
             for (int i = 0; i < config.NumOutputs; i++)
             {
-                var node = new DefaultNodeGene(i + config.NumInputs);
+                var node = new DefaultNodeGene(i);  // Start at 0 for output nodes
                 node.ConfigureAttributes(null);
-                genome.Nodes[i + config.NumInputs] = node;
+                node.Bias = (float)(random.NextDouble() * 2 - 1);  // Random bias between -1 and 1
+                genome.Nodes[i] = node;
             }
 
             // Create hidden nodes if specified
@@ -74,9 +76,10 @@ namespace RTNEAT_offline.NEAT.Genome
             {
                 for (int i = 0; i < config.NumHidden; i++)
                 {
-                    var node = new DefaultNodeGene(i + config.NumInputs + config.NumOutputs);
+                    var node = new DefaultNodeGene(i + config.NumOutputs);  // Continue from output nodes
                     node.ConfigureAttributes(null);
-                    genome.Nodes[i + config.NumInputs + config.NumOutputs] = node;
+                    node.Bias = (float)(random.NextDouble() * 2 - 1);  // Random bias between -1 and 1
+                    genome.Nodes[i + config.NumOutputs] = node;
                 }
             }
 
@@ -92,22 +95,22 @@ namespace RTNEAT_offline.NEAT.Genome
                     {
                         for (int j = 0; j < config.NumOutputs; j++)
                         {
-                            var conn = new DefaultConnectionGene((i, j + config.NumInputs));
+                            var conn = new DefaultConnectionGene((-i - 1, j));  // From input to output
                             conn.ConfigureAttributes(null);
-                            conn.Weight = (float)(random.NextDouble() * 4 - 2); // Random weight between -2 and 2
+                            conn.Weight = (float)(random.NextDouble() * 2 - 1);  // Random weight between -1 and 1
                             conn.Enabled = true;
-                            genome.Connections[(i, j + config.NumInputs)] = conn;
+                            genome.Connections[(-i - 1, j)] = conn;
                         }
                     }
                     break;
                 case "partial":
                     // Connect a random subset of possible connections
                     var possibleConnections = new List<(int, int)>();
-                    for (int fromNode = 0; fromNode < config.NumInputs; fromNode++)
+                    for (int i = 0; i < config.NumInputs; i++)
                     {
-                        for (int toNode = 0; toNode < config.NumOutputs; toNode++)
+                        for (int j = 0; j < config.NumOutputs; j++)
                         {
-                            possibleConnections.Add((fromNode, toNode + config.NumInputs));
+                            possibleConnections.Add((-i - 1, j));  // From input to output
                         }
                     }
                     int numConnections = (int)(possibleConnections.Count * (config.ConnectionFraction ?? 0.5));
@@ -119,7 +122,7 @@ namespace RTNEAT_offline.NEAT.Genome
                         
                         var conn = new DefaultConnectionGene((fromNode, toNode));
                         conn.ConfigureAttributes(null);
-                        conn.Weight = (float)(random.NextDouble() * 4 - 2);
+                        conn.Weight = (float)(random.NextDouble() * 2 - 1);  // Random weight between -1 and 1
                         conn.Enabled = true;
                         genome.Connections[(fromNode, toNode)] = conn;
                     }
@@ -194,67 +197,72 @@ namespace RTNEAT_offline.NEAT.Genome
             if (!Connections.Any())
                 return;
 
-            // Choose a random connection to split
-            var conn = Connections.Values.ElementAt(random.Next(Connections.Count));
+            // Choose a random enabled connection to split
+            var enabledConns = Connections.Values.Where(c => c.Enabled).ToList();
+            if (!enabledConns.Any())
+                return;
+
+            var conn = enabledConns[random.Next(enabledConns.Count)];
             var connKey = conn.Key;
-            var (inNode, outNode) = ((ValueTuple<int, int>)connKey);
-            var newNodeId = Nodes.Keys.Max() + 1;
+            var (fromNode, toNode) = ((ValueTuple<int, int>)connKey);
 
-            // Create new node
-            var newNode = new DefaultNodeGene(newNodeId);
-            newNode.ConfigureAttributes(null);
-            Nodes[newNodeId] = newNode;
-
-            // Create new connections
-            var inToNew = new DefaultConnectionGene((inNode, newNodeId));
-            inToNew.ConfigureAttributes(null);
-            inToNew.Weight = 1.0f;
-            inToNew.Enabled = true;
-
-            var newToOut = new DefaultConnectionGene((newNodeId, outNode));
-            newToOut.ConfigureAttributes(null);
-            newToOut.Weight = conn.Weight;
-            newToOut.Enabled = true;
-
-            // Disable old connection
+            // Disable the old connection
             conn.Enabled = false;
 
-            // Add new connections
-            Connections[(inNode, newNodeId)] = inToNew;
-            Connections[(newNodeId, outNode)] = newToOut;
+            // Add the new node
+            int newNodeId = Nodes.Keys.Max() + 1;
+            var newNode = new DefaultNodeGene(newNodeId);
+            newNode.ConfigureAttributes(null);
+            newNode.Bias = (float)(random.NextDouble() * 2 - 1);  // Random bias between -1 and 1
+            Nodes[newNodeId] = newNode;
+
+            // Add two new connections
+            var conn1 = new DefaultConnectionGene((fromNode, newNodeId));
+            conn1.ConfigureAttributes(null);
+            conn1.Weight = 1.0f;  // Keep the path strong
+            conn1.Enabled = true;
+            Connections[(fromNode, newNodeId)] = conn1;
+
+            var conn2 = new DefaultConnectionGene((newNodeId, toNode));
+            conn2.ConfigureAttributes(null);
+            conn2.Weight = conn.Weight;  // Preserve the old connection's weight
+            conn2.Enabled = true;
+            Connections[(newNodeId, toNode)] = conn2;
         }
 
         private void AddConnection(DefaultGenomeConfig config)
         {
-            if (config.FeedForward && CreatesCycle())
-                return;
-
-            // Get list of possible connections
+            // Get all possible connections that don't exist and won't create cycles
             var possibleConnections = new List<(int, int)>();
             foreach (var fromNode in Nodes.Keys)
             {
                 foreach (var toNode in Nodes.Keys)
                 {
-                    if (fromNode != toNode && 
-                        !Connections.ContainsKey((fromNode, toNode)) &&
-                        (!config.FeedForward || toNode > fromNode))
+                    // Skip if connection already exists
+                    if (Connections.ContainsKey((fromNode, toNode)))
+                        continue;
+
+                    // Skip if it would connect input to input or output to output
+                    if ((fromNode < 0 && toNode < 0) || (fromNode >= 0 && toNode >= 0 && fromNode < config.NumOutputs && toNode < config.NumOutputs))
+                        continue;
+
+                    // Skip if it would create a cycle
+                    if (!CreatesCycle(fromNode, toNode))
                     {
                         possibleConnections.Add((fromNode, toNode));
                     }
                 }
             }
 
-            if (!possibleConnections.Any())
-                return;
-
-            // Choose a random possible connection
-            var (selectedFrom, selectedTo) = possibleConnections[random.Next(possibleConnections.Count)];
-            var newConn = new DefaultConnectionGene((selectedFrom, selectedTo));
-            newConn.ConfigureAttributes(null);
-            newConn.Weight = (float)(random.NextDouble() * 4 - 2);
-            newConn.Enabled = true;
-
-            Connections[(selectedFrom, selectedTo)] = newConn;
+            if (possibleConnections.Count > 0)
+            {
+                var (fromNode, toNode) = possibleConnections[random.Next(possibleConnections.Count)];
+                var newConn = new DefaultConnectionGene((fromNode, toNode));
+                newConn.ConfigureAttributes(null);
+                newConn.Weight = (float)(random.NextDouble() * 2 - 1);  // Random weight between -1 and 1
+                newConn.Enabled = true;
+                Connections[(fromNode, toNode)] = newConn;
+            }
         }
 
         private void DeleteNode()
@@ -291,34 +299,42 @@ namespace RTNEAT_offline.NEAT.Genome
             Connections.Remove(connToDelete);
         }
 
-        private bool CreatesCycle()
+        private bool CreatesCycle(int fromNode, int toNode)
         {
+            // Add the potential new connection temporarily
+            var tempConnections = new Dictionary<(int, int), DefaultConnectionGene>(Connections);
+            var tempConn = new DefaultConnectionGene((fromNode, toNode));
+            tempConn.Enabled = true;
+            tempConnections[(fromNode, toNode)] = tempConn;
+
+            // Check for cycles using depth-first search
             var visited = new HashSet<int>();
-            var stack = new HashSet<int>();
+            var recursionStack = new HashSet<int>();
 
             bool HasCycle(int node)
             {
-                if (stack.Contains(node))
-                    return true;
-                if (visited.Contains(node))
-                    return false;
-
-                visited.Add(node);
-                stack.Add(node);
-
-                foreach (var conn in Connections.Where(c => c.Key.Item1 == node))
+                if (!visited.Contains(node))
                 {
-                    if (HasCycle(conn.Key.Item2))
-                        return true;
-                }
+                    visited.Add(node);
+                    recursionStack.Add(node);
 
-                stack.Remove(node);
+                    foreach (var conn in tempConnections.Values.Where(c => c.Enabled && ((ValueTuple<int, int>)c.Key).Item1 == node))
+                    {
+                        var nextNode = ((ValueTuple<int, int>)conn.Key).Item2;
+                        if (!visited.Contains(nextNode) && HasCycle(nextNode))
+                            return true;
+                        else if (recursionStack.Contains(nextNode))
+                            return true;
+                    }
+                }
+                recursionStack.Remove(node);
                 return false;
             }
 
-            foreach (var node in Nodes.Keys)
+            // Start DFS from all input nodes
+            foreach (var node in Nodes.Keys.Where(k => k < 0))
             {
-                if (!visited.Contains(node) && HasCycle(node))
+                if (HasCycle(node))
                     return true;
             }
 
