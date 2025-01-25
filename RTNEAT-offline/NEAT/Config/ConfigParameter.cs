@@ -78,28 +78,52 @@ public class ConfigParameter
 
     public object Interpret(Dictionary<string, object> config)
     {
-        if (!config.TryGetValue(name, out var value))
-        {
-            if (defaultObject == null)
-                throw new Exception($"Missing configuration item: {name}");
-
-            Console.WriteLine($"Using default value for '{name}': {defaultObject}");
+        if (!config.ContainsKey(name))
             return defaultObject;
-        }
+
+        var value = config[name];
+        if (value == null)
+            return defaultObject;
 
         try
         {
-            if (valueType == typeof(int))
+            if (valueType == typeof(double))
+            {
+                if (value is double d) return d;
+                if (value is int i) return (double)i;
+                if (value is float f) return (double)f;
+                return Convert.ToDouble(value);
+            }
+            else if (valueType == typeof(int))
+            {
+                if (value is int i) return i;
+                if (value is double d) return (int)d;
+                if (value is float f) return (int)f;
                 return Convert.ToInt32(value);
-            if (valueType == typeof(bool))
+            }
+            else if (valueType == typeof(bool))
+            {
+                if (value is bool b) return b;
+                if (value is string s)
+                {
+                    return s.ToLower() switch
+                    {
+                        "true" or "1" or "yes" or "on" => true,
+                        "false" or "0" or "no" or "off" => false,
+                        _ => throw new Exception($"Invalid boolean value: {s}")
+                    };
+                }
                 return Convert.ToBoolean(value);
-            if (valueType == typeof(float))
-                return Convert.ToSingle(value);
-            if (valueType == typeof(string))
-                return Convert.ToString(value) ?? string.Empty;
-            if (valueType == typeof(List<string>))
-                return ((string?)value)?.Split(' ').ToList() ?? new List<string>();
-
+            }
+            else if (valueType == typeof(string))
+            {
+                return value.ToString();
+            }
+            else if (valueType == typeof(Type))
+            {
+                return value as Type ?? Type.GetType(value.ToString());
+            }
+            
             throw new InvalidOperationException($"Unsupported configuration type: {valueType}");
         }
         catch (Exception ex)

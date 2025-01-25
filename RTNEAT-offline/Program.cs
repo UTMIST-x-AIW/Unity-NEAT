@@ -1,3 +1,12 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿using RTNEAT_offline.NEAT.Tests;
 
-Console.WriteLine("Hello, World!");
+namespace RTNEAT_offline
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            XORTest.RunTest();
+        }
+    }
+}
