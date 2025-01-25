@@ -23,17 +23,17 @@ namespace RTNEAT_offline.NEAT.Tests
             {
                 { "num_inputs", 2 },
                 { "num_outputs", 1 },
-                { "num_hidden", 1 },
+                { "num_hidden", 2 },
                 { "feed_forward", true },
                 { "compatibility_disjoint_coefficient", 1.0 },
                 { "compatibility_weight_coefficient", 0.5 },
-                { "conn_add_prob", 0.1 },
-                { "conn_delete_prob", 0.1 },
-                { "node_add_prob", 0.1 },
-                { "node_delete_prob", 0.1 },
+                { "conn_add_prob", 0.05 },
+                { "conn_delete_prob", 0.05 },
+                { "node_add_prob", 0.03 },
+                { "node_delete_prob", 0.03 },
                 { "weight_mutate_rate", 0.8 },
                 { "weight_replace_rate", 0.1 },
-                { "weight_mutate_power", 1.0 },
+                { "weight_mutate_power", 0.5 },
                 { "enabled_mutate_rate", 0.01 },
                 { "bias_mutate_rate", 0.7 },
                 { "initial_connection", "full" }
@@ -145,7 +145,7 @@ namespace RTNEAT_offline.NEAT.Tests
             var orderedNodes = genome.Nodes.OrderBy(n => n.Key).Where(n => n.Key >= 0);
             foreach (var node in orderedNodes)
             {
-                float sum = 0;
+                float sum = node.Value.Bias;
                 foreach (var conn in genome.Connections.Values.Where(c => c.Enabled && ((ValueTuple<int, int>)c.Key).Item2 == node.Key))
                 {
                     var fromNode = ((ValueTuple<int, int>)conn.Key).Item1;
@@ -166,11 +166,15 @@ namespace RTNEAT_offline.NEAT.Tests
 
         private static float EvaluateGenome(DefaultGenome genome, DefaultGenomeConfig config)
         {
-            float fitness = 0;
+            float fitness = 4.0f;
             foreach (var (inputs, expected) in XORDataset)
             {
                 var output = ActivateNetwork(genome, inputs, config);
-                fitness += 1.0f - Math.Abs(expected - output[0]); // Higher fitness for closer answers
+                float error = Math.Abs(expected - output[0]);
+                if (error > 0.5f)
+                {
+                    fitness -= 1.0f;
+                }
             }
             return fitness;
         }

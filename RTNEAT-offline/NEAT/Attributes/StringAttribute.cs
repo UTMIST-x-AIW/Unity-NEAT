@@ -6,18 +6,18 @@ using RTNEAT_offline.NEAT.Configuration;
 
 public class StringAttribute : GeneAttribute
 {
-    private readonly List<string> options;
-    private readonly float mutateRate;
-    private readonly Random random;
+    private readonly List<string> _options;
+    private readonly float _mutateRate;
+    private readonly Random _random;
 
     public StringAttribute(string name, string defaultValue, List<string>? options = null, float mutateRate = 0.1f) 
         : base(name, defaultValue)
     {
-        this.options = options ?? new List<string> { defaultValue };
-        this.mutateRate = mutateRate;
-        this.random = new Random();
+        _options = options ?? new List<string> { defaultValue };
+        _mutateRate = mutateRate;
+        _random = new Random();
 
-        if (!this.options.Contains(defaultValue))
+        if (!_options.Contains(defaultValue))
         {
             throw new ArgumentException($"Default value {defaultValue} not in options list for {Name}");
         }
@@ -25,15 +25,12 @@ public class StringAttribute : GeneAttribute
 
     public override void MutateValue(Config config)
     {
-        if (random.NextDouble() < mutateRate)
+        if (_options == null || !_options.Any())
+            return;
+
+        if (_random.NextDouble() < _mutateRate)
         {
-            var currentIndex = options.IndexOf((string)Value);
-            var newIndex = random.Next(options.Count - 1);
-            if (newIndex >= currentIndex)
-            {
-                newIndex++; // Skip the current value
-            }
-            Value = options[newIndex];
+            Value = _options[_random.Next(_options.Count)];
         }
     }
 
@@ -43,7 +40,7 @@ public class StringAttribute : GeneAttribute
         {
             throw new ArgumentException($"Value {Value} is not a string for {Name}");
         }
-        if (!options.Contains(value))
+        if (!_options.Contains(value))
         {
             throw new ArgumentException($"Value {value} not in options list for {Name}");
         }

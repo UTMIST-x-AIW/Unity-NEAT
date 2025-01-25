@@ -24,12 +24,12 @@ public class FloatAttribute : GeneAttribute
     public override void MutateValue(Config config)
     {
         var r = random.NextDouble();
-        var currentValue = (float)Value;
+        var currentValue = Convert.ToSingle(Value);
 
         if (r < replaceRate)
         {
             // Replace with a random value
-            Value = random.NextDouble() * (maxValue - minValue) + minValue;
+            Value = Convert.ToSingle(random.NextDouble() * (maxValue - minValue) + minValue);
         }
         else
         {
