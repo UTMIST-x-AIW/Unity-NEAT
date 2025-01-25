@@ -13,12 +13,14 @@ namespace NEAT.NN
         private readonly List<int> _outputNodes;
         private readonly List<int> _hiddenNodes;
         private readonly Dictionary<int, double> _nodeValues;
+        private readonly HashSet<int> _activating;
 
         public FeedForwardNetwork(Dictionary<int, NodeGene> nodes, Dictionary<int, ConnectionGene> connections)
         {
             _nodes = nodes;
             _connections = connections;
             _nodeValues = new Dictionary<int, double>();
+            _activating = new HashSet<int>();
 
             // Categorize nodes
             _inputNodes = nodes.Values.Where(n => n.Type == NodeType.Input).Select(n => n.Key).ToList();
@@ -33,8 +35,9 @@ namespace NEAT.NN
                 throw new ArgumentException($"Expected {_inputNodes.Count} inputs, got {inputs.Length}");
             }
 
-            // Reset node values
+            // Reset node values and activation tracking
             _nodeValues.Clear();
+            _activating.Clear();
 
             // Set input values
             for (int i = 0; i < inputs.Length; i++)
@@ -60,8 +63,16 @@ namespace NEAT.NN
 
         private void ActivateNode(int nodeKey)
         {
-            if (_nodeValues.ContainsKey(nodeKey))
+            // Return if node is already activated or is currently being activated (cycle detection)
+            if (_nodeValues.ContainsKey(nodeKey) || _activating.Contains(nodeKey))
                 return;
+
+            // Skip activation for input nodes (they should already have values)
+            if (_inputNodes.Contains(nodeKey))
+                return;
+
+            // Mark node as being activated
+            _activating.Add(nodeKey);
 
             double sum = 0.0;
             foreach (var conn in _connections.Values)
@@ -69,16 +80,18 @@ namespace NEAT.NN
                 if (conn.OutputKey == nodeKey && conn.Enabled)
                 {
                     // Ensure input node is activated
+                    ActivateNode(conn.InputKey);
+
+                    // Skip if input node wasn't activated (could be due to cycle)
                     if (!_nodeValues.ContainsKey(conn.InputKey))
-                    {
-                        ActivateNode(conn.InputKey);
-                    }
+                        continue;
 
                     sum += conn.Weight * _nodeValues[conn.InputKey];
                 }
             }
 
             _nodeValues[nodeKey] = Sigmoid(sum);
+            _activating.Remove(nodeKey);
         }
 
         private static double Sigmoid(double x)
