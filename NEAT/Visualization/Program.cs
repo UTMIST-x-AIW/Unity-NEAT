@@ -16,6 +16,8 @@ public class Program
         // Create a population and run XOR evolution
         var pop = new Population(config);
         Genome? winner = null;
+        double bestFitnessSoFar = double.MinValue;
+        string timestamp = DateTime.Now.ToString("yyyy_MM_dd__h_mm_ss_tt").ToLower();
 
         Console.WriteLine("\nStarting XOR evolution:");
 
@@ -26,7 +28,17 @@ public class Program
             var best = pop.GetBestGenome();
             Console.WriteLine($"Best fitness: {best.Fitness:F4}");
 
-            if (best.Fitness > 3.5)
+            // If this generation has a better fitness, save its visualization
+            if (best.Fitness.HasValue && best.Fitness.Value > bestFitnessSoFar)
+            {
+                bestFitnessSoFar = best.Fitness.Value;
+                var dot = NetworkVisualizer.GenerateDotGraph(best);
+                var visualizationsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "visualizations");
+                var dotPath = Path.Combine(visualizationsDir, $"{timestamp}_gen{generation}.dot");
+                NetworkVisualizer.SaveDotToFile(dot, dotPath);
+            }
+
+            if (best.Fitness.HasValue && best.Fitness.Value > 3.5)
             {
                 winner = best;
                 break;
@@ -36,13 +48,12 @@ public class Program
         // Get the best genome (winner or best attempt)
         var bestGenome = winner ?? pop.GetBestGenome();
 
-        // Generate DOT file
-        var dot = NetworkVisualizer.GenerateDotGraph(bestGenome);
-        var dotPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "network.dot");
-        NetworkVisualizer.SaveDotToFile(dot, dotPath);
+        // Generate final DOT file
+        var finalDot = NetworkVisualizer.GenerateDotGraph(bestGenome);
+        var finalDotPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "visualizations", $"{timestamp}_final.dot");
+        NetworkVisualizer.SaveDotToFile(finalDot, finalDotPath);
 
-        Console.WriteLine($"\nNetwork visualization saved to: {dotPath}");
-        Console.WriteLine("To create an SVG, run: dot -Tsvg network.dot -o network.svg");
+        Console.WriteLine($"\nNetwork visualizations saved in: {Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "visualizations")}");
     }
 
     private static void EvaluateGenome(Genome genome)

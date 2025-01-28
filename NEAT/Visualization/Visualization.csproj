@@ -23,4 +23,10 @@
     <Compile Include="**/*.cs" Exclude="obj/**/*.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="visualizations/**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

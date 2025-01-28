@@ -40,6 +40,13 @@ public class NetworkVisualizer
 
     public static void SaveDotToFile(string dot, string filePath)
     {
+        // Create directory if it doesn't exist
+        var directory = Path.GetDirectoryName(filePath);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
         File.WriteAllText(filePath, dot);
         
         // Generate SVG using dot command

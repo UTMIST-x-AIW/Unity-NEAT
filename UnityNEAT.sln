@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NEAT", "NEAT\NEAT.csproj", "{4457E6A9-89D1-4F4E-9549-CD626466527C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NEAT", "NEAT", "{EEEFF800-D508-4F18-BDE8-4973E8DD6F93}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Visualization", "NEAT\Visualization\Visualization.csproj", "{3ED7B0EF-C585-4170-A703-A22BB7D92F10}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4457E6A9-89D1-4F4E-9549-CD626466527C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4457E6A9-89D1-4F4E-9549-CD626466527C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4457E6A9-89D1-4F4E-9549-CD626466527C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4457E6A9-89D1-4F4E-9549-CD626466527C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3ED7B0EF-C585-4170-A703-A22BB7D92F10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3ED7B0EF-C585-4170-A703-A22BB7D92F10}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3ED7B0EF-C585-4170-A703-A22BB7D92F10}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3ED7B0EF-C585-4170-A703-A22BB7D92F10}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4457E6A9-89D1-4F4E-9549-CD626466527C} = {EEEFF800-D508-4F18-BDE8-4973E8DD6F93}
+		{3ED7B0EF-C585-4170-A703-A22BB7D92F10} = {EEEFF800-D508-4F18-BDE8-4973E8DD6F93}
+	EndGlobalSection
+EndGlobal
