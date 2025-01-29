@@ -30,6 +30,8 @@ namespace NEAT.Config
             };
         }
 
+        public double CompatibilityThreshold { get; private set; }
+
         public void LoadConfig(string filename)
         {
             if (!File.Exists(filename))
@@ -81,6 +83,13 @@ namespace NEAT.Config
                     // Store in section parameters
                     _parameters[$"{currentSection}.{key}"] = value;
                     sectionParams[currentSection][key] = value;
+                }
+
+                switch (key)
+                {
+                    case "compatibility_threshold":
+                        CompatibilityThreshold = double.Parse(value);
+                        break;
                 }
             }
 

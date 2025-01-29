@@ -15,6 +15,7 @@ namespace NEAT
         private int _generation;
         private readonly Random _random;
         private int _nextNodeKey;  // Global innovation counter for node keys
+        private double _compatibilityThreshold;
 
         public Population(Config.Config config)
         {
@@ -24,6 +25,7 @@ namespace NEAT
             _generation = 0;
             _random = new Random();
             _nextNodeKey = 0;  // Will be initialized after creating input/output nodes
+            _compatibilityThreshold = config.CompatibilityThreshold;
 
             CreateInitialPopulation();
         }
@@ -335,6 +337,49 @@ namespace NEAT
         public Genome.Genome GetBestGenome()
         {
             return _population.Values.OrderByDescending(g => g.Fitness).First();
+        }
+
+        public int GetSpeciesCount()
+        {
+            return _species.Count;
+        }
+
+        public void UpdateCompatibilityThreshold(double newThreshold)
+        {
+            _compatibilityThreshold = newThreshold;
+        }
+
+        public List<Genome.Genome> GetTopGenomes(int count)
+        {
+            var allGenomes = _species.Values.SelectMany(s => s.Members)
+                                  .OrderByDescending(g => g.Fitness)
+                                  .Take(count)
+                                  .ToList();
+            return allGenomes;
+        }
+
+        public void InjectGenomes(List<Genome.Genome> genomes)
+        {
+            // Add the genomes to random species or create new species
+            foreach (var genome in genomes)
+            {
+                var foundSpecies = false;
+                foreach (var s in _species.Values)
+                {
+                    if (s.IsCompatible(genome, _compatibilityThreshold))
+                    {
+                        s.AddMember(genome);
+                        foundSpecies = true;
+                        break;
+                    }
+                }
+
+                if (!foundSpecies)
+                {
+                    var newSpecies = new Species.Species(_species.Count, genome);
+                    _species[newSpecies.Key] = newSpecies;
+                }
+            }
         }
     }
 } 
