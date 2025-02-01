@@ -25,9 +25,16 @@ namespace NEAT.Visualization
             var population = new Population(config, false);  // Create empty population
 
             // Create three distinct genomes
-            var genome1 = CreateSimpleGenome(1, new[] { (0, 2, 0.5), (1, 2, 0.5) });  // Simple direct connections
-            var genome2 = CreateSimpleGenome(2, new[] { (0, 3, 0.5), (3, 2, 0.5) });  // Has a hidden node
-            var genome3 = CreateSimpleGenome(3, new[] { (0, 2, -2.0), (1, 2, -2.0) }); // Similar to genome1 but very different weights
+            var genome1 = CreateSimpleGenome(1, new[] { (0, 2, 0.5, 0), (1, 2, 0.5, 1) });  // Simple direct connections
+            var genome2 = CreateSimpleGenome(2, new[] { (0, 3, 0.5, 2), (3, 2, 0.5, 3) });  // Has a hidden node
+            var genome3 = CreateSimpleGenome(3, new[] { (0, 2, -2.0, 0), (1, 2, -2.0, 1) }); // Similar to genome1 but very different weights
+            var genome4 = CreateSimpleGenome(4, new[] { (0, 2, 0.51, 0), (1, 2, 0.49, 1) }); // Similar to genome1
+
+            // Set fitness values
+            genome1.Fitness = 1.0;
+            genome2.Fitness = 1.0;
+            genome3.Fitness = 1.0;
+            genome4.Fitness = 1.0;
 
             Console.WriteLine("\nInitial Genomes:");
             PrintGenomeDetails(genome1, "Genome 1 (Direct connections)");
@@ -49,23 +56,43 @@ namespace NEAT.Visualization
             // Get species information
             var speciesCount = population.GetSpeciesCount();
             Console.WriteLine($"\nNumber of species formed: {speciesCount}");
+            Console.WriteLine("\nSpecies details:");
+            foreach (var species in population.GetSpecies())
+            {
+                Console.WriteLine($"Species {species.Key} has {species.Members.Count} members:");
+                foreach (var member in species.Members)
+                {
+                    Console.WriteLine($"  - Genome {member.Key}");
+                }
+            }
 
             // Test expectations
             bool test1 = speciesCount >= 2 && speciesCount <= 3; // We expect 2-3 species due to structural differences
             Console.WriteLine($"\nTest 1 - Multiple Species Formed: {(test1 ? "PASSED" : "FAILED")}");
             Console.WriteLine($"Expected 2-3 species, got {speciesCount}");
 
-            // Create a genome very similar to genome1
-            var genome4 = CreateSimpleGenome(4, new[] { (0, 2, 0.51), (1, 2, 0.49) });
+            // Add similar genome
             Console.WriteLine("\nAdding similar genome to Genome 1:");
             PrintGenomeDetails(genome4, "Genome 4 (Similar to Genome 1)");
             double dist14 = genome1.CalculateGenomeDistance(genome4, 1.0, 0.4);
             Console.WriteLine($"Distance between Genome 1 and 4: {dist14:F2}");
 
+            // Add the similar genome to the existing population
             population.InjectGenomes(new List<Genome.Genome> { genome4 });
 
             // Get updated species count
             var newSpeciesCount = population.GetSpeciesCount();
+            Console.WriteLine($"\nNumber of species after adding similar genome: {newSpeciesCount}");
+            Console.WriteLine("\nSpecies details after adding similar genome:");
+            foreach (var species in population.GetSpecies())
+            {
+                Console.WriteLine($"Species {species.Key} has {species.Members.Count} members:");
+                foreach (var member in species.Members)
+                {
+                    Console.WriteLine($"  - Genome {member.Key}");
+                }
+            }
+
             bool test2 = newSpeciesCount == speciesCount; // Similar genome shouldn't create new species
             Console.WriteLine($"\nTest 2 - Similar Genome Grouped: {(test2 ? "PASSED" : "FAILED")}");
             Console.WriteLine($"Expected same number of species after adding similar genome");
@@ -73,7 +100,7 @@ namespace NEAT.Visualization
             Console.WriteLine("\nSpeciation Test Complete!");
         }
 
-        private static Genome.Genome CreateSimpleGenome(int key, (int input, int output, double weight)[] connections)
+        private static Genome.Genome CreateSimpleGenome(int key, (int input, int output, double weight, int connKey)[] connections)
         {
             var genome = new Genome.Genome(key);
             
@@ -91,10 +118,9 @@ namespace NEAT.Visualization
             }
 
             // Add connections
-            int connKey = 0;
-            foreach (var (input, output, weight) in connections)
+            foreach (var (input, output, weight, connKey) in connections)
             {
-                genome.AddConnection(new ConnectionGene(connKey++, input, output, weight));
+                genome.AddConnection(new ConnectionGene(connKey, input, output, weight));
             }
 
             return genome;

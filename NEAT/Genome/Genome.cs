@@ -50,11 +50,13 @@ namespace NEAT.Genome
 
         public double CalculateGenomeDistance(Genome other, double disjointCoefficient, double weightCoefficient)
         {
-            var nodeGeneSet = new HashSet<int>(Nodes.Keys.Concat(other.Nodes.Keys));
-            var connectionGeneSet = new HashSet<int>(Connections.Keys.Concat(other.Connections.Keys));
+            // Calculate disjoint nodes
+            var disjointNodes = Nodes.Keys.Count(k => !other.Nodes.ContainsKey(k)) +
+                               other.Nodes.Keys.Count(k => !Nodes.ContainsKey(k));
 
-            double disjointNodes = nodeGeneSet.Count - Math.Min(Nodes.Count, other.Nodes.Count);
-            double disjointConnections = connectionGeneSet.Count - Math.Min(Connections.Count, other.Connections.Count);
+            // Calculate disjoint connections
+            var disjointConnections = Connections.Keys.Count(k => !other.Connections.ContainsKey(k)) +
+                                    other.Connections.Keys.Count(k => !Connections.ContainsKey(k));
 
             // Calculate average weight differences of matching connections
             double weightDiff = 0.0;

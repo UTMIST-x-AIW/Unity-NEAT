@@ -96,23 +96,41 @@ namespace NEAT
 
         private void SpeciatePopulation()
         {
-            // Reset all species
-            foreach (var species in _species.Values)
-            {
-                species.Reset();
-            }
-
             // Get coefficients once
             double disjointCoefficient = _config.GetParameter("disjoint_coefficient", 1.0);
             double weightCoefficient = _config.GetParameter("weight_coefficient", 0.4);
 
+            // Sort genomes by fitness (descending) and key (ascending) to ensure consistent ordering
+            var sortedGenomes = _population.Values
+                .OrderByDescending(g => g.Fitness ?? 0.0)
+                .ThenBy(g => g.Key)
+                .ToList();
+
+            // Create a new dictionary for updated species
+            var newSpecies = new Dictionary<int, Species.Species>();
+            int nextSpeciesKey = 0;
+
             // Assign genomes to species
-            foreach (var genome in _population.Values)
+            foreach (var genome in sortedGenomes)
             {
                 bool foundSpecies = false;
-                foreach (var species in _species.Values)
+                double minDistance = double.MaxValue;
+                Species.Species bestSpecies = null;
+                
+                // First try to add to existing species
+                foreach (var species in newSpecies.Values)
                 {
-                    if (species.IsCompatible(genome, _compatibilityThreshold, disjointCoefficient, weightCoefficient))
+                    if (species.Representative == null)
+                        continue;
+
+                    double distance = genome.CalculateGenomeDistance(species.Representative, disjointCoefficient, weightCoefficient);
+                    if (distance < minDistance)
+                    {
+                        minDistance = distance;
+                        bestSpecies = species;
+                    }
+
+                    if (distance < _compatibilityThreshold)
                     {
                         species.AddMember(genome);
                         foundSpecies = true;
@@ -120,19 +138,29 @@ namespace NEAT
                     }
                 }
 
+                // If no compatible species found, try to add to the closest species
                 if (!foundSpecies)
                 {
-                    // Create new species
-                    var newSpecies = new Species.Species(_species.Count, genome);
-                    _species[newSpecies.Key] = newSpecies;
+                    // If we found a species that's close enough, add it to that species
+                    if (bestSpecies != null && (minDistance < _compatibilityThreshold * 1.5 || 
+                        (genome.Nodes.Count == bestSpecies.Representative.Nodes.Count && 
+                         genome.Connections.Count == bestSpecies.Representative.Connections.Count)))
+                    {
+                        bestSpecies.AddMember(genome);
+                    }
+                    else
+                    {
+                        var newSpeciesInstance = new Species.Species(nextSpeciesKey++, genome);
+                        newSpecies[newSpeciesInstance.Key] = newSpeciesInstance;
+                    }
                 }
             }
 
-            // Remove empty species
-            var emptySpecies = _species.Values.Where(s => s.Members.Count == 0).ToList();
-            foreach (var species in emptySpecies)
+            // Update the species dictionary
+            _species.Clear();
+            foreach (var species in newSpecies)
             {
-                _species.Remove(species.Key);
+                _species[species.Key] = species.Value;
             }
         }
 
@@ -357,6 +385,11 @@ namespace NEAT
             return _species.Count;
         }
 
+        public List<Species.Species> GetSpecies()
+        {
+            return _species.Values.ToList();
+        }
+
         public void UpdateCompatibilityThreshold(double newThreshold)
         {
             _compatibilityThreshold = newThreshold;
@@ -369,10 +402,13 @@ namespace NEAT
 
         public void InjectGenomes(List<Genome.Genome> genomes)
         {
+            // Add new genomes to population
             foreach (var genome in genomes)
             {
                 _population[genome.Key] = genome;
             }
+
+            // Respeciate the entire population
             SpeciatePopulation();
         }
     }

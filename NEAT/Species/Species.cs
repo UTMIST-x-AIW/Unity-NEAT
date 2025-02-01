@@ -36,8 +36,15 @@ namespace NEAT.Species
 
         public void AddMember(NEAT.Genome.Genome genome)
         {
+            // Don't add if already a member
+            if (Members.Any(m => m.Key == genome.Key))
+                return;
+
             Members.Add(genome);
-            if (Representative == null || (genome.Fitness.HasValue && Representative.Fitness.HasValue && genome.Fitness.Value > Representative.Fitness.Value))
+            if (Representative == null || 
+                (genome.Fitness.HasValue && Representative.Fitness.HasValue && 
+                 (genome.Fitness.Value > Representative.Fitness.Value || 
+                  (genome.Fitness.Value == Representative.Fitness.Value && genome.Key < Representative.Key))))
             {
                 Representative = genome;
             }
@@ -53,10 +60,12 @@ namespace NEAT.Species
             var oldRepresentative = Representative;
             Members.Clear();
             Age++;
+            
+            // Only add back the representative if it's still valid
             if (oldRepresentative != null)
             {
-                Members.Add(oldRepresentative);
                 Representative = oldRepresentative;
+                Members.Add(oldRepresentative); // Add back the representative to members
             }
         }
 
@@ -73,6 +82,10 @@ namespace NEAT.Species
         {
             if (Representative == null)
                 return Members.Count == 0;  // Only allow joining if this is a new species
+
+            // If this genome is identical to the representative, it's definitely compatible
+            if (genome.Key == Representative.Key)
+                return true;
 
             var distance = genome.CalculateGenomeDistance(Representative, disjointCoefficient, weightCoefficient);
             return distance < compatibilityThreshold;
