@@ -26,13 +26,14 @@ namespace NEAT.Visualization
             config.SetParameter("population_size", 150);
             config.SetParameter("num_inputs", 2);
             config.SetParameter("num_outputs", 1);
-            config.SetParameter("compatibility_threshold", 3.0);
+            config.SetParameter("compatibility_threshold", 20.0);
             config.SetParameter("weight_mutation_rate", 0.8);
             config.SetParameter("node_add_prob", 0.2);
             config.SetParameter("conn_add_prob", 0.5);
             config.SetParameter("conn_delete_prob", 0.2);
-            config.SetParameter("disjoint_coefficient", 1.0);
-            config.SetParameter("weight_coefficient", 0.4);
+            config.SetParameter("disjoint_coefficient", 0.3);
+            config.SetParameter("weight_coefficient", 0.3);
+            config.SetParameter("species_target_size", 30);
 
             // Create population and visualization
             var population = new Population(config);

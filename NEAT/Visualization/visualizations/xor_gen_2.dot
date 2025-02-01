@@ -1,0 +1,11 @@
+digraph neat {
+  rankdir=LR;
+  node [shape=circle];
+  node0 [label="0", style=filled, fillcolor=lightblue];
+  node1 [label="1", style=filled, fillcolor=lightblue];
+  node74 [label="74", style=filled, fillcolor=lightgreen];
+  node203 [label="203", style=filled, fillcolor=lightgray];
+  node1 -> node74 [label="1.76"];
+  node0 -> node203 [label="1.00"];
+  node203 -> node74 [label="-2.86"];
+}
