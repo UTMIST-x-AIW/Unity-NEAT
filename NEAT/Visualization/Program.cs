@@ -2,6 +2,9 @@
 using NEAT.Config;
 using NEAT.Genome;
 using NEAT.NN;
+using NEAT.Visualization;
+using System;
+using System.IO;
 
 namespace Visualization;
 
@@ -9,6 +12,12 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        if (args.Length > 0 && args[0] == "--test-speciation")
+        {
+            SpeciationTests.RunTests();
+            return;
+        }
+
         var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt");
         var config = new Config();
         config.LoadConfig(configPath);
