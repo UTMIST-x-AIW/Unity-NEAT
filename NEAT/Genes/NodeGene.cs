@@ -19,6 +19,7 @@ namespace NEAT.Genes
         public double Activation { get; set; }
         public double Aggregation { get; set; }
         public int Layer { get; set; }  // 0 for input, 1+ for hidden, max+1 for output
+        public double Value { get; set; }  // Current activation value for network evaluation
 
         public NodeGene(int key, NodeType type) : base(key)
         {
@@ -28,6 +29,7 @@ namespace NEAT.Genes
             Response = 1.0;
             Activation = 0.0;
             Aggregation = 0.0;
+            Value = 0.0;
             Layer = type == NodeType.Input ? 0 : 
                    type == NodeType.Output ? int.MaxValue : 
                    1;  // Hidden nodes start at layer 1
@@ -42,6 +44,7 @@ namespace NEAT.Genes
                 Response = Response,
                 Activation = Activation,
                 Aggregation = Aggregation,
+                Value = Value,
                 Enabled = Enabled,
                 Layer = Layer
             };

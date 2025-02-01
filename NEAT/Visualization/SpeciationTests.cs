@@ -1,9 +1,7 @@
-using NEAT.Config;
-using NEAT.Genome;
-using NEAT.Genes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NEAT.Genes;
 
 namespace NEAT.Visualization
 {
@@ -51,7 +49,7 @@ namespace NEAT.Visualization
             Console.WriteLine($"Distance between Genome 2 and 3: {dist23:F2}");
 
             // Inject these genomes into the population
-            population.InjectGenomes(new List<Genome.Genome> { genome1, genome2, genome3 });
+            population.InjectGenomes(new List<NEAT.Genome.Genome> { genome1, genome2, genome3 });
 
             // Get species information
             var speciesCount = population.GetSpeciesCount();
@@ -78,7 +76,7 @@ namespace NEAT.Visualization
             Console.WriteLine($"Distance between Genome 1 and 4: {dist14:F2}");
 
             // Add the similar genome to the existing population
-            population.InjectGenomes(new List<Genome.Genome> { genome4 });
+            population.InjectGenomes(new List<NEAT.Genome.Genome> { genome4 });
 
             // Get updated species count
             var newSpeciesCount = population.GetSpeciesCount();
@@ -100,9 +98,9 @@ namespace NEAT.Visualization
             Console.WriteLine("\nSpeciation Test Complete!");
         }
 
-        private static Genome.Genome CreateSimpleGenome(int key, (int input, int output, double weight, int connKey)[] connections)
+        private static NEAT.Genome.Genome CreateSimpleGenome(int key, (int input, int output, double weight, int connKey)[] connections)
         {
-            var genome = new Genome.Genome(key);
+            var genome = new NEAT.Genome.Genome(key);
             
             // Add input nodes
             genome.AddNode(new NodeGene(0, NodeType.Input));
@@ -126,7 +124,7 @@ namespace NEAT.Visualization
             return genome;
         }
 
-        private static void PrintGenomeDetails(Genome.Genome genome, string label)
+        private static void PrintGenomeDetails(NEAT.Genome.Genome genome, string label)
         {
             Console.WriteLine($"\n{label}:");
             Console.WriteLine($"Nodes: {string.Join(", ", genome.Nodes.Values.Select(n => $"{n.Key}({n.Type})"))}");
