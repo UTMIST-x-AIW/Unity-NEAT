@@ -25,6 +25,7 @@
     <Compile Include="SpeciationTests.cs" />
     <Compile Include="SpeciesVisualization.cs" />
     <Compile Include="XORVisualization.cs" />
+    <Compile Include="NetworkVisualizer.cs" />
   </ItemGroup>
 
 </Project>

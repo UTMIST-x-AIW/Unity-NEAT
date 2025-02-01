@@ -1,8 +1,10 @@
+using System;
 using System.Text;
+using System.IO;
 using NEAT.Genome;
 using NEAT.Genes;
 
-namespace Visualization;
+namespace NEAT.Visualization;
 
 public class NetworkVisualizer
 {

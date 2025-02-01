@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using NEAT.Genes;
 
 namespace NEAT.Visualization
@@ -37,12 +38,16 @@ namespace NEAT.Visualization
             var population = new Population(config);
             var visualization = new SpeciesVisualization();
 
+            // Create visualization directory
+            Directory.CreateDirectory("visualizations");
+
             // Evolution loop
             int generation = 0;
             double bestFitness = 0.0;
             int generationsWithoutImprovement = 0;
             const int maxGenerations = 100;
             const int stagnationLimit = 15;
+            NEAT.Genome.Genome? lastBestGenome = null;
 
             while (generation < maxGenerations && generationsWithoutImprovement < stagnationLimit)
             {
@@ -54,10 +59,15 @@ namespace NEAT.Visualization
 
                 // Track progress
                 var currentBest = population.GetBestGenome();
-                if (currentBest != null && currentBest.Fitness > bestFitness)
+                if (currentBest != null && (lastBestGenome == null || currentBest.Fitness > lastBestGenome.Fitness))
                 {
                     bestFitness = currentBest.Fitness ?? 0.0;
                     generationsWithoutImprovement = 0;
+
+                    // Save network visualization
+                    var dotGraph = NetworkVisualizer.GenerateDotGraph(currentBest);
+                    NetworkVisualizer.SaveDotToFile(dotGraph, $"visualizations/xor_gen_{generation}.dot");
+                    lastBestGenome = currentBest;
 
                     // Print progress
                     Console.WriteLine($"Generation {generation}: New best fitness = {bestFitness:F4}");
@@ -95,6 +105,14 @@ namespace NEAT.Visualization
 
             // Print species history
             visualization.PrintHistory();
+
+            // Print final network visualization
+            if (bestGenome != null)
+            {
+                Console.WriteLine("\nGenerating final network visualization...");
+                var dotGraph = NetworkVisualizer.GenerateDotGraph(bestGenome);
+                NetworkVisualizer.SaveDotToFile(dotGraph, "visualizations/xor_final.dot");
+            }
         }
 
         private static void EvaluateGenome(NEAT.Genome.Genome genome)
