@@ -4,12 +4,15 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <EnableDefaultItems>false</EnableDefaultItems>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="**/*.cs" Exclude="obj/**/*.cs" />
+    <Compile Include="**/*.cs" />
+    <Compile Remove="obj/**/*.cs" />
+    <Compile Remove="bin/**/*.cs" />
+    <Compile Remove="Tests/**/*.cs" />
+    <Compile Remove="Visualization/**/*.cs" />
+    <Compile Remove="XOR/**/*.cs" />
   </ItemGroup>
 
 </Project> 

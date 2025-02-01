@@ -30,6 +30,22 @@ namespace NEAT
             CreateInitialPopulation();
         }
 
+        public Population(Config.Config config, bool createInitialPopulation)
+        {
+            _config = config;
+            _population = new Dictionary<int, Genome.Genome>();
+            _species = new Dictionary<int, Species.Species>();
+            _generation = 0;
+            _random = new Random();
+            _nextNodeKey = 0;  // Will be initialized after creating input/output nodes
+            _compatibilityThreshold = config.CompatibilityThreshold;
+
+            if (createInitialPopulation)
+            {
+                CreateInitialPopulation();
+            }
+        }
+
         private void CreateInitialPopulation()
         {
             int populationSize = _config.GetParameter("population_size", 150);
@@ -86,20 +102,17 @@ namespace NEAT
                 species.Reset();
             }
 
+            // Get coefficients once
+            double disjointCoefficient = _config.GetParameter("disjoint_coefficient", 1.0);
+            double weightCoefficient = _config.GetParameter("weight_coefficient", 0.4);
+
             // Assign genomes to species
             foreach (var genome in _population.Values)
             {
                 bool foundSpecies = false;
                 foreach (var species in _species.Values)
                 {
-                    if (species.Representative == null) continue;
-
-                    double distance = genome.CalculateGenomeDistance(
-                        species.Representative,
-                        _config.GetParameter("disjoint_coefficient", 1.0),
-                        _config.GetParameter("weight_coefficient", 0.5));
-
-                    if (distance < _config.GetParameter("compatibility_threshold", 3.0))
+                    if (species.IsCompatible(genome, _compatibilityThreshold, disjointCoefficient, weightCoefficient))
                     {
                         species.AddMember(genome);
                         foundSpecies = true;
@@ -336,7 +349,7 @@ namespace NEAT
 
         public Genome.Genome GetBestGenome()
         {
-            return _population.Values.OrderByDescending(g => g.Fitness).First();
+            return _population.Values.OrderByDescending(g => g.Fitness).FirstOrDefault();
         }
 
         public int GetSpeciesCount()
@@ -351,35 +364,16 @@ namespace NEAT
 
         public List<Genome.Genome> GetTopGenomes(int count)
         {
-            var allGenomes = _species.Values.SelectMany(s => s.Members)
-                                  .OrderByDescending(g => g.Fitness)
-                                  .Take(count)
-                                  .ToList();
-            return allGenomes;
+            return _population.Values.OrderByDescending(g => g.Fitness).Take(count).ToList();
         }
 
         public void InjectGenomes(List<Genome.Genome> genomes)
         {
-            // Add the genomes to random species or create new species
             foreach (var genome in genomes)
             {
-                var foundSpecies = false;
-                foreach (var s in _species.Values)
-                {
-                    if (s.IsCompatible(genome, _compatibilityThreshold))
-                    {
-                        s.AddMember(genome);
-                        foundSpecies = true;
-                        break;
-                    }
-                }
-
-                if (!foundSpecies)
-                {
-                    var newSpecies = new Species.Species(_species.Count, genome);
-                    _species[newSpecies.Key] = newSpecies;
-                }
+                _population[genome.Key] = genome;
             }
+            SpeciatePopulation();
         }
     }
 } 

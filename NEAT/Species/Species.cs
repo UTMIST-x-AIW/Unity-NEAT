@@ -50,8 +50,14 @@ namespace NEAT.Species
 
         public void Reset()
         {
+            var oldRepresentative = Representative;
             Members.Clear();
             Age++;
+            if (oldRepresentative != null)
+            {
+                Members.Add(oldRepresentative);
+                Representative = oldRepresentative;
+            }
         }
 
         public bool IsStagnant(int stagnationGenerations, double improvementThreshold)
@@ -63,45 +69,13 @@ namespace NEAT.Species
             return Math.Abs(currentFitness - FitnessHistory.Value) < improvementThreshold;
         }
 
-        public bool IsCompatible(NEAT.Genome.Genome genome, double compatibilityThreshold)
+        public bool IsCompatible(NEAT.Genome.Genome genome, double compatibilityThreshold, double disjointCoefficient, double weightCoefficient)
         {
             if (Representative == null)
-                return true;
+                return Members.Count == 0;  // Only allow joining if this is a new species
 
-            var distance = CalculateGenomeDistance(genome, Representative);
+            var distance = genome.CalculateGenomeDistance(Representative, disjointCoefficient, weightCoefficient);
             return distance < compatibilityThreshold;
-        }
-
-        private double CalculateGenomeDistance(NEAT.Genome.Genome genome1, NEAT.Genome.Genome genome2)
-        {
-            var disjoint = 0;
-            var weightDiff = 0.0;
-            var matchingGenes = 0;
-
-            // Compare connection genes
-            var genes1 = genome1.Connections.Values.ToDictionary(g => g.Key);
-            var genes2 = genome2.Connections.Values.ToDictionary(g => g.Key);
-
-            var allInnovations = genes1.Keys.Union(genes2.Keys);
-
-            foreach (var innovation in allInnovations)
-            {
-                if (genes1.ContainsKey(innovation) && genes2.ContainsKey(innovation))
-                {
-                    weightDiff += Math.Abs(genes1[innovation].Weight - genes2[innovation].Weight);
-                    matchingGenes++;
-                }
-                else
-                {
-                    disjoint++;
-                }
-            }
-
-            var disjointCoeff = 1.0;
-            var weightCoeff = 0.4;
-
-            return (disjointCoeff * disjoint / Math.Max(genome1.Connections.Count, genome2.Connections.Count)) +
-                   (weightCoeff * weightDiff / (matchingGenes > 0 ? matchingGenes : 1));
         }
 
         public override string ToString()

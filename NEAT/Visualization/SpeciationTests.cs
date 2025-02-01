@@ -18,11 +18,11 @@ namespace NEAT.Visualization
             config.SetParameter("num_inputs", 2);
             config.SetParameter("num_outputs", 1);
             config.SetParameter("population_size", 10);
-            config.SetParameter("compatibility_threshold", 3.0); // Increased threshold for less strict speciation
-            config.SetParameter("disjoint_coefficient", 1.0);
-            config.SetParameter("weight_coefficient", 0.3); // Reduced weight coefficient to be less sensitive to weight differences
+            config.SetParameter("compatibility_threshold", 2.0); // Adjusted threshold
+            config.SetParameter("disjoint_coefficient", 1.0); // Reduced to make structural differences less dominant
+            config.SetParameter("weight_coefficient", 0.4); // Increased to give more weight to connection weights
 
-            var population = new Population(config);
+            var population = new Population(config, false);  // Create empty population
 
             // Create three distinct genomes
             var genome1 = CreateSimpleGenome(1, new[] { (0, 2, 0.5), (1, 2, 0.5) });  // Simple direct connections
@@ -33,6 +33,15 @@ namespace NEAT.Visualization
             PrintGenomeDetails(genome1, "Genome 1 (Direct connections)");
             PrintGenomeDetails(genome2, "Genome 2 (Has hidden node)");
             PrintGenomeDetails(genome3, "Genome 3 (Different weights)");
+
+            // Print distances between genomes
+            Console.WriteLine("\nGenome Distances:");
+            double dist12 = genome1.CalculateGenomeDistance(genome2, 1.0, 0.4);
+            double dist13 = genome1.CalculateGenomeDistance(genome3, 1.0, 0.4);
+            double dist23 = genome2.CalculateGenomeDistance(genome3, 1.0, 0.4);
+            Console.WriteLine($"Distance between Genome 1 and 2: {dist12:F2}");
+            Console.WriteLine($"Distance between Genome 1 and 3: {dist13:F2}");
+            Console.WriteLine($"Distance between Genome 2 and 3: {dist23:F2}");
 
             // Inject these genomes into the population
             population.InjectGenomes(new List<Genome.Genome> { genome1, genome2, genome3 });
@@ -48,6 +57,11 @@ namespace NEAT.Visualization
 
             // Create a genome very similar to genome1
             var genome4 = CreateSimpleGenome(4, new[] { (0, 2, 0.51), (1, 2, 0.49) });
+            Console.WriteLine("\nAdding similar genome to Genome 1:");
+            PrintGenomeDetails(genome4, "Genome 4 (Similar to Genome 1)");
+            double dist14 = genome1.CalculateGenomeDistance(genome4, 1.0, 0.4);
+            Console.WriteLine($"Distance between Genome 1 and 4: {dist14:F2}");
+
             population.InjectGenomes(new List<Genome.Genome> { genome4 });
 
             // Get updated species count
