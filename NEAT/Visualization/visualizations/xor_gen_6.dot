@@ -3,9 +3,9 @@ digraph neat {
   node [shape=circle];
   node0 [label="0", style=filled, fillcolor=lightblue];
   node1 [label="1", style=filled, fillcolor=lightblue];
-  node114 [label="114", style=filled, fillcolor=lightgreen];
-  node166 [label="166", style=filled, fillcolor=lightgray];
-  node1 -> node114 [label="2.83"];
-  node0 -> node166 [label="2.63"];
-  node166 -> node114 [label="-4.81"];
+  node48 [label="48", style=filled, fillcolor=lightgreen];
+  node194 [label="194", style=filled, fillcolor=lightgray];
+  node1 -> node48 [label="2.95"];
+  node0 -> node194 [label="1.00"];
+  node194 -> node48 [label="-4.21"];
 }

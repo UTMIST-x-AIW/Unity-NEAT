@@ -55,6 +55,30 @@ namespace NEAT.Visualization
                 // Record species information
                 visualization.RecordGeneration(generation, population.GetSpecies());
 
+                // Visualize species representatives
+                var species = population.GetSpecies();
+                foreach (var s in species)
+                {
+                    if (s.Members.Count > 1)  // Visualize any species with multiple members
+                    {
+                        var dotGraph = NetworkVisualizer.GenerateDotGraph(s.Representative);
+                        var filename = $"visualizations/species_{s.Key}_gen_{generation}";
+                        NetworkVisualizer.SaveDotToFile(dotGraph, $"{filename}.dot");
+                        Console.WriteLine($"\nVisualized Multi-Member Species {s.Key}:");
+                        Console.WriteLine($"Size: {s.Members.Count} members");
+                        Console.WriteLine($"Representative Fitness: {s.Representative.Fitness:F3}");
+                        Console.WriteLine($"Structure: {s.Representative.Nodes.Count} nodes, {s.Representative.Connections.Count} connections");
+                        
+                        // Also visualize all members of the species
+                        foreach (var member in s.Members)
+                        {
+                            var memberDotGraph = NetworkVisualizer.GenerateDotGraph(member);
+                            var memberFilename = $"visualizations/species_{s.Key}_member_{member.Key}_gen_{generation}";
+                            NetworkVisualizer.SaveDotToFile(memberDotGraph, $"{memberFilename}.dot");
+                        }
+                    }
+                }
+
                 // Evolve population
                 population.Evolve(EvaluateGenome);
 
