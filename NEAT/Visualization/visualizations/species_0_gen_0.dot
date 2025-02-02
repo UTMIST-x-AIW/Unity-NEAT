@@ -1,9 +1,45 @@
 digraph neat {
+  compound=true;
   rankdir=LR;
   node [shape=circle];
-  node0 [label="0", style=filled, fillcolor=lightblue];
-  node1 [label="1", style=filled, fillcolor=lightblue];
-  node2 [label="2", style=filled, fillcolor=lightgreen];
-  node0 -> node2 [label="-1.08"];
-  node1 -> node2 [label="-1.89"];
+  subgraph cluster_0 {
+    label="Test 0,0 → 0";
+    style=rounded;
+    color=gray;
+    node0_0 [label="0.000", style=filled, fillcolor=lightblue];
+    node1_0 [label="0.000", style=filled, fillcolor=lightblue];
+    node2_0 [label="0.500", style=filled, fillcolor=lightgreen];
+    node0_0 -> node2_0 [label="-0.44"];
+    node1_0 -> node2_0 [label="0.66"];
+  }
+  subgraph cluster_1 {
+    label="Test 0,1 → 1";
+    style=rounded;
+    color=gray;
+    node0_1 [label="0.000", style=filled, fillcolor=lightblue];
+    node1_1 [label="1.000", style=filled, fillcolor=lightblue];
+    node2_1 [label="0.961", style=filled, fillcolor=lightgreen];
+    node0_1 -> node2_1 [label="-0.44"];
+    node1_1 -> node2_1 [label="0.66"];
+  }
+  subgraph cluster_2 {
+    label="Test 1,0 → 1";
+    style=rounded;
+    color=gray;
+    node0_2 [label="1.000", style=filled, fillcolor=lightblue];
+    node1_2 [label="0.000", style=filled, fillcolor=lightblue];
+    node2_2 [label="0.105", style=filled, fillcolor=lightgreen];
+    node0_2 -> node2_2 [label="-0.44"];
+    node1_2 -> node2_2 [label="0.66"];
+  }
+  subgraph cluster_3 {
+    label="Test 1,1 → 0";
+    style=rounded;
+    color=gray;
+    node0_3 [label="1.000", style=filled, fillcolor=lightblue];
+    node1_3 [label="1.000", style=filled, fillcolor=lightblue];
+    node2_3 [label="0.745", style=filled, fillcolor=lightgreen];
+    node0_3 -> node2_3 [label="-0.44"];
+    node1_3 -> node2_3 [label="0.66"];
+  }
 }
