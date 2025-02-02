@@ -1,11 +1,51 @@
 digraph neat {
+  compound=true;
   rankdir=LR;
   node [shape=circle];
-  node0 [label="0.000", style=filled, fillcolor=lightblue];
-  node1 [label="1.000", style=filled, fillcolor=lightblue];
-  node105 [label="1.000", style=filled, fillcolor=lightgreen];
-  node178 [label="0.993", style=filled, fillcolor=lightgray];
-  node0 -> node105 [label="1.77"];
-  node1 -> node178 [label="1.00"];
-  node178 -> node105 [label="1.95"];
+  ranksep=2.0;
+  nodesep=0.5;
+  subgraph cluster_0 {
+    label="Test 0,0 → 0";
+    style=rounded;
+    color=gray;
+    node0_0 [label="0.000", style=filled, fillcolor=lightblue];
+    node1_0 [label="0.000", style=filled, fillcolor=lightblue];
+    node24_0 [label="0.018", style=filled, fillcolor=lightgreen];
+    node176_0 [label="0.500", style=filled, fillcolor=lightgray];
+    node1_0 -> node176_0 [label="1.00"];
+    node176_0 -> node24_0 [label="-1.63"];
+  }
+  subgraph cluster_1 {
+    label="Test 0,1 → 1";
+    style=rounded;
+    color=gray;
+    node0_1 [label="0.000", style=filled, fillcolor=lightblue];
+    node1_1 [label="1.000", style=filled, fillcolor=lightblue];
+    node24_1 [label="0.000", style=filled, fillcolor=lightgreen];
+    node176_1 [label="0.993", style=filled, fillcolor=lightgray];
+    node1_1 -> node176_1 [label="1.00"];
+    node176_1 -> node24_1 [label="-1.63"];
+  }
+  subgraph cluster_2 {
+    label="Test 1,0 → 1";
+    style=rounded;
+    color=gray;
+    node0_2 [label="1.000", style=filled, fillcolor=lightblue];
+    node1_2 [label="0.000", style=filled, fillcolor=lightblue];
+    node24_2 [label="0.018", style=filled, fillcolor=lightgreen];
+    node176_2 [label="0.500", style=filled, fillcolor=lightgray];
+    node1_2 -> node176_2 [label="1.00"];
+    node176_2 -> node24_2 [label="-1.63"];
+  }
+  subgraph cluster_3 {
+    label="Test 1,1 → 0";
+    style=rounded;
+    color=gray;
+    node0_3 [label="1.000", style=filled, fillcolor=lightblue];
+    node1_3 [label="1.000", style=filled, fillcolor=lightblue];
+    node24_3 [label="0.000", style=filled, fillcolor=lightgreen];
+    node176_3 [label="0.993", style=filled, fillcolor=lightgray];
+    node1_3 -> node176_3 [label="1.00"];
+    node176_3 -> node24_3 [label="-1.63"];
+  }
 }

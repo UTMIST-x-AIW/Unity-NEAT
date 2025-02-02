@@ -1,8 +1,51 @@
 digraph neat {
+  compound=true;
   rankdir=LR;
   node [shape=circle];
-  node0 [label="0.000", style=filled, fillcolor=lightblue];
-  node1 [label="1.000", style=filled, fillcolor=lightblue];
-  node124 [label="0.500", style=filled, fillcolor=lightgreen];
-  node0 -> node124 [label="2.23"];
+  ranksep=2.0;
+  nodesep=0.5;
+  subgraph cluster_0 {
+    label="Test 0,0 → 0";
+    style=rounded;
+    color=gray;
+    node0_0 [label="0.000", style=filled, fillcolor=lightblue];
+    node1_0 [label="0.000", style=filled, fillcolor=lightblue];
+    node39_0 [label="0.500", style=filled, fillcolor=lightgreen];
+    node161_0 [label="0.500", style=filled, fillcolor=lightgray];
+    node0_0 -> node39_0 [label="3.58"];
+    node1_0 -> node39_0 [label="1.27"];
+  }
+  subgraph cluster_1 {
+    label="Test 0,1 → 1";
+    style=rounded;
+    color=gray;
+    node0_1 [label="0.000", style=filled, fillcolor=lightblue];
+    node1_1 [label="1.000", style=filled, fillcolor=lightblue];
+    node39_1 [label="0.998", style=filled, fillcolor=lightgreen];
+    node161_1 [label="0.500", style=filled, fillcolor=lightgray];
+    node0_1 -> node39_1 [label="3.58"];
+    node1_1 -> node39_1 [label="1.27"];
+  }
+  subgraph cluster_2 {
+    label="Test 1,0 → 1";
+    style=rounded;
+    color=gray;
+    node0_2 [label="1.000", style=filled, fillcolor=lightblue];
+    node1_2 [label="0.000", style=filled, fillcolor=lightblue];
+    node39_2 [label="1.000", style=filled, fillcolor=lightgreen];
+    node161_2 [label="0.500", style=filled, fillcolor=lightgray];
+    node0_2 -> node39_2 [label="3.58"];
+    node1_2 -> node39_2 [label="1.27"];
+  }
+  subgraph cluster_3 {
+    label="Test 1,1 → 0";
+    style=rounded;
+    color=gray;
+    node0_3 [label="1.000", style=filled, fillcolor=lightblue];
+    node1_3 [label="1.000", style=filled, fillcolor=lightblue];
+    node39_3 [label="1.000", style=filled, fillcolor=lightgreen];
+    node161_3 [label="0.500", style=filled, fillcolor=lightgray];
+    node0_3 -> node39_3 [label="3.58"];
+    node1_3 -> node39_3 [label="1.27"];
+  }
 }

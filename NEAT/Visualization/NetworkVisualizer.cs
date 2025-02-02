@@ -58,6 +58,8 @@ public class NetworkVisualizer
         sb.AppendLine("  compound=true;"); // Enable connections to and from clusters
         sb.AppendLine("  rankdir=LR;");  // Left to right layout
         sb.AppendLine("  node [shape=circle];");  // Default node shape
+        sb.AppendLine("  ranksep=2.0;");  // Increase spacing between ranks
+        sb.AppendLine("  nodesep=0.5;");  // Increase spacing between nodes
 
         // Create a subgraph for each test case
         for (int testCase = 0; testCase < XORTestCases.Length; testCase++)
