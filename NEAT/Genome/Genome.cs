@@ -33,7 +33,7 @@ namespace NEAT.Genome
         public Genome Clone(int newKey)
         {
             var clone = new Genome(newKey);
-            
+
             foreach (var node in Nodes.Values)
             {
                 clone.AddNode((NodeGene)node.Clone());
@@ -76,4 +76,4 @@ namespace NEAT.Genome
             return $"Genome(key={Key}, nodes={Nodes.Count}, connections={Connections.Count}, fitness={Fitness})";
         }
     }
-} 
+}

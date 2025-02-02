@@ -38,4 +38,4 @@ namespace NEAT.Genes
             return $"ConnectionGene(key={Key}, input={InputKey}, output={OutputKey}, weight={Weight}, enabled={Enabled})";
         }
     }
-} 
+}

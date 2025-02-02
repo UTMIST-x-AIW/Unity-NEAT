@@ -19,14 +19,14 @@ public class Program
 
         Console.WriteLine("\nStarting XOR evolution:");
 
-        for (int generation = 0; generation < 300; generation++)
+        for (int generation = 0; generation < 1000; generation++)
         {
             Console.WriteLine($"\nGeneration: {generation}");
             pop.Evolve(EvaluateGenome);
             var best = pop.GetBestGenome();
             Console.WriteLine($"Best fitness: {best.Fitness:F4}");
 
-            if (best.Fitness > 3.5)
+            if (best.Fitness > 3.9)
             {
                 winner = best;
                 break;
@@ -49,7 +49,7 @@ public class Program
     {
         var net = FeedForwardNetwork.Create(genome);
         double fitness = 4.0;  // Max fitness
-        
+
         // Test all XOR cases
         var inputs = new[]
         {
@@ -62,9 +62,9 @@ public class Program
 
         for (int i = 0; i < inputs.Length; i++)
         {
-            var output = net.Activate(inputs[i]);
-            double error = Math.Abs(expectedOutputs[i] - output[0]);
-            fitness -= error * error;  // Subtract squared error
+            var output = Math.Floor(net.Activate(inputs[i])[0] + 0.5);
+            double error = Math.Abs(expectedOutputs[i] - output);
+            fitness -= error;
         }
 
         genome.Fitness = fitness;

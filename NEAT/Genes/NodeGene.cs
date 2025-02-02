@@ -28,8 +28,8 @@ namespace NEAT.Genes
             Response = 1.0;
             Activation = 0.0;
             Aggregation = 0.0;
-            Layer = type == NodeType.Input ? 0 : 
-                   type == NodeType.Output ? int.MaxValue : 
+            Layer = type == NodeType.Input ? 0 :
+                   type == NodeType.Output ? int.MaxValue :
                    1;  // Hidden nodes start at layer 1
         }
 
@@ -58,7 +58,7 @@ namespace NEAT.Genes
 
         public override string ToString()
         {
-            return $"NodeGene(key={Key}, type={Type})";
+            return $"NodeGene(key={Key}, type={Type}, layer={Layer})";
         }
     }
-} 
+}

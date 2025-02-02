@@ -68,13 +68,13 @@ namespace NEAT.NN
                               .OrderBy(n => n.Key)
                               .Select(n => n.Key)
                               .ToList();
-            
+
             _hiddenNodes = nodes.Values.Where(n => n.Type == NodeType.Hidden)
                                .OrderBy(n => n.Layer)
                                .ThenBy(n => n.Key)
                                .Select(n => n.Key)
                                .ToList();
-            
+
             _outputNodes = nodes.Values.Where(n => n.Type == NodeType.Output)
                                .OrderBy(n => n.Key)
                                .Select(n => n.Key)
@@ -116,18 +116,18 @@ namespace NEAT.NN
         private void ActivateNode(int nodeKey)
         {
             double sum = 0.0;
-            
+
             // Sum all incoming connections
             foreach (var inputKey in _incomingConnections[nodeKey])
             {
                 var conn = _connections.Values.First(c => c.InputKey == inputKey && c.OutputKey == nodeKey && c.Enabled);
-                
+
                 // Input node must already have a value since we're feedforward
                 if (!_nodeValues.ContainsKey(inputKey))
                 {
                     throw new InvalidOperationException($"Node {inputKey} should have been activated before node {nodeKey}");
                 }
-                
+
                 sum += conn.Weight * _nodeValues[inputKey];
             }
 
@@ -136,7 +136,7 @@ namespace NEAT.NN
 
         private static double Sigmoid(double x)
         {
-            return 1.0 / (1.0 + Math.Exp(-x));
+            return Math.Max(0, x);
         }
 
         public static FeedForwardNetwork Create(Genome.Genome genome)
@@ -144,4 +144,4 @@ namespace NEAT.NN
             return new FeedForwardNetwork(genome.Nodes, genome.Connections);
         }
     }
-} 
+}

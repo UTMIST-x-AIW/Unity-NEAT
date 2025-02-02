@@ -44,7 +44,7 @@ namespace NEAT
         private Genome.Genome CreateInitialGenome(int key)
         {
             var genome = new Genome.Genome(key);
-            
+
             // Add input nodes
             int numInputs = _config.GetParameter("num_inputs", 2);
             for (int i = 0; i < numInputs; i++)
@@ -244,7 +244,7 @@ namespace NEAT
                     var newNodeKey = _nextNodeKey++;
                     var sourceNode = genome.Nodes[conn.InputKey];
                     var targetNode = genome.Nodes[conn.OutputKey];
-                    
+
                     // Place new node in a layer between source and target
                     var newNode = new NodeGene(newNodeKey, NodeType.Hidden);
                     if (targetNode.Type == NodeType.Output)
@@ -337,4 +337,4 @@ namespace NEAT
             return _population.Values.OrderByDescending(g => g.Fitness).First();
         }
     }
-} 
+}

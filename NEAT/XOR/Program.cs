@@ -36,16 +36,16 @@ public class Program
         Console.WriteLine("\nStarting XOR evolution:");
 
         Genome? winner = null;
-        for (int generation = 0; generation < 300; generation++)
+        for (int generation = 0; generation < 1000; generation++)
         {
             Console.WriteLine($"\nGeneration: {generation}");
-            
+
             pop.Evolve(EvaluateGenome);
             var best = pop.GetBestGenome();
-            
+
             Console.WriteLine($"Best fitness: {best.Fitness:F4}");
 
-            if (best.Fitness > 3.2)
+            if (best.Fitness > 3.8)
             {
                 winner = best;
                 break;
@@ -57,7 +57,7 @@ public class Program
             Console.WriteLine("\nFound a solution!\n");
             Console.WriteLine("Final output:");
             var winnerNet = FeedForwardNetwork.Create(winner);
-            
+
             for (int i = 0; i < XorInputs.Length; i++)
             {
                 var output = winnerNet.Activate(XorInputs[i]);
@@ -77,10 +77,12 @@ public class Program
 
         for (int i = 0; i < XorInputs.Length; i++)
         {
-            var output = net.Activate(XorInputs[i]);
-            fitness -= Math.Pow(output[0] - XorOutputs[i][0], 2);
+            var output = Math.Floor(net.Activate(XorInputs[i])[0] + 0.5);
+            Console.WriteLine(net.Activate(XorInputs[i])[0]);
+            Console.WriteLine(output);
+            fitness -= Math.Pow(output - XorOutputs[i][0], 2);
         }
 
         genome.Fitness = fitness;
     }
-} 
+}
