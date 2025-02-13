@@ -136,8 +136,9 @@ namespace NEAT.NN
 
         private static double Sigmoid(double x)
         {
-            return Math.Max(0, x);
+            return 1 / (1 + Math.Exp(-x));
         }
+
 
         public static FeedForwardNetwork Create(Genome.Genome genome)
         {
