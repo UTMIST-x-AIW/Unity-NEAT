@@ -2,6 +2,8 @@ using NEAT;
 using NEAT.Config;
 using NEAT.NN;
 using NEAT.Visualization;
+using System.Diagnostics;
+using System.Text;
 
 namespace NEAT.Sine;
 
@@ -102,6 +104,9 @@ public class Program
 
         Console.WriteLine($"\nNetwork visualization saved to: {finalDotPath}");
         Console.WriteLine("To create an SVG, run: dot -Tsvg sine_final.dot -o sine_final.svg");
+
+        // Plot the outputs against the test points
+        PlotResults(network, TestPoints);
     }
 
     private static void EvaluateGenome(NEAT.Genome.Genome genome)
@@ -117,7 +122,27 @@ public class Program
             totalError += Math.Abs(expected - output); // Subtract absolute error
         }
         // inverted error
-        genome.Fitness = (1.0)/(1.0+totalError);
+        genome.Fitness = (1.0)/(1.0 + totalError);
         //genome.Fitness = fitness;
     }
-} 
+
+    private static void PlotResults(FeedForwardNetwork network, (double input, double output)[] testPoints)
+    {
+        var inputs = testPoints.Select(tp => tp.input).ToArray();
+        var expectedOutputs = testPoints.Select(tp => tp.output).ToArray();
+        var actualOutputs = testPoints.Select(tp => network.Activate(new[] { tp.input })[0]).ToArray();
+
+        var plotData = new StringBuilder();
+        plotData.AppendLine("Input,Expected,Actual");
+        for (int i = 0; i < testPoints.Length; i++)
+        {
+            plotData.AppendLine($"{inputs[i]},{expectedOutputs[i]},{actualOutputs[i]}");
+        }
+
+        var plotDataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plot_data.csv");
+        File.WriteAllText(plotDataPath, plotData.ToString());
+
+        Console.WriteLine($"\nPlot data saved to: {plotDataPath}");
+        Console.WriteLine("To plot the results, use a plotting tool or script with the CSV file.");
+    }
+}
