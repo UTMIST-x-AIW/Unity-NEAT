@@ -2,20 +2,21 @@
 using NEAT.Config;
 using NEAT.Genome;
 using NEAT.NN;
+using NEAT.Visualization;
 
-namespace Visualization;
+namespace NEAT.Visualization;
 
 public class Program
 {
     public static void Main(string[] args)
     {
         var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt");
-        var config = new Config();
+        var config = new NEAT.Config.Config();
         config.LoadConfig(configPath);
 
         // Create a population and run XOR evolution
         var pop = new Population(config);
-        Genome? winner = null;
+        NEAT.Genome.Genome? winner = null;
 
         Console.WriteLine("\nStarting XOR evolution:");
 
@@ -45,7 +46,7 @@ public class Program
         Console.WriteLine("To create an SVG, run: dot -Tsvg network.dot -o network.svg");
     }
 
-    private static void EvaluateGenome(Genome genome)
+    private static void EvaluateGenome(NEAT.Genome.Genome genome)
     {
         var net = FeedForwardNetwork.Create(genome);
         double fitness = 4.0;  // Max fitness

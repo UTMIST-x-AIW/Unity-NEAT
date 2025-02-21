@@ -2,7 +2,7 @@ using System.Text;
 using NEAT.Genome;
 using NEAT.Genes;
 
-namespace Visualization;
+namespace NEAT;
 
 public class NetworkVisualizer
 {
