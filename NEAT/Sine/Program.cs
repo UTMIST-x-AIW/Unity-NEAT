@@ -2,6 +2,8 @@ using NEAT;
 using NEAT.Config;
 using NEAT.NN;
 using NEAT.Visualization;
+using System.Diagnostics;
+using System.Text;
 
 namespace NEAT.Sine;
 
@@ -110,6 +112,9 @@ public class Program
 
         Console.WriteLine($"\nNetwork visualization saved to: {finalDotPath}");
         Console.WriteLine("To create an SVG, run: dot -Tsvg sine_final.dot -o sine_final.svg");
+
+        // Plot the outputs against the test points
+        PlotResults(network, TestPoints);
     }
 
     private static void EvaluateGenome(NEAT.Genome.Genome genome)
