@@ -8,7 +8,7 @@ namespace NEAT.Sine;
 public class Program
 {
     // Generate test points for sine function between -π and π
-    private static readonly int NumTestPoints = 40;
+    private static readonly int NumTestPoints = 100;
     private static (double input, double output)[] TestPoints;
     private static readonly Random Random = new Random();
 
@@ -17,14 +17,15 @@ public class Program
         TestPoints = new (double input, double output)[NumTestPoints];
         for (int i = 0; i < NumTestPoints; i++)
         {
-
-            double x = Random.NextDouble() * 2 * Math.PI - Math.PI;
+            // three sine cycles (6 pi)
+            double x = Random.NextDouble() * 5 * Math.PI - 2 * Math.PI;
             TestPoints[i] = (x, Math.Sin(x));
         }
     }
 
     public static void Main(string[] args)
     {
+        Initialize();
         var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt");
         var config = new NEAT.Config.Config();
         config.LoadConfig(configPath);
@@ -39,7 +40,7 @@ public class Program
         double bestFitness = double.MinValue;
         int generationsWithoutImprovement = 0;
         const int maxGenerations = 2000;
-        const int stagnationLimit = 1500;
+        const int stagnationLimit = 300;
 
         while (generation < maxGenerations && generationsWithoutImprovement < stagnationLimit)
         {
@@ -63,7 +64,7 @@ public class Program
                 generationsWithoutImprovement++;
             }
 
-            if (best.Fitness > NumTestPoints*0.8) // Very close to perfect
+            if (best.Fitness > 0.95) // Very close to perfect
             {
                 winner = best;
                 Console.WriteLine("Solution found!");
@@ -106,16 +107,17 @@ public class Program
     private static void EvaluateGenome(NEAT.Genome.Genome genome)
     {
         var net = FeedForwardNetwork.Create(genome);
-        double fitness = NumTestPoints*2; // Start with maximum possible score
-
-        Initialize();
+        double totalError = 0.0; // total error is 0
+        //double fitness = 50.0;
         
         foreach (var (input, expected) in TestPoints)
         {
-            var output = net.Activate(new[] { input })[0]*2 - 1;
-            fitness -= Math.Abs(expected - output); // Subtract absolute error
+            var output = net.Activate(new[] { input })[0]; //if the activation function ranges from [0 to 1]
+            //fitness += 0.9 - Math.Abs(expected - output);
+            totalError += Math.Abs(expected - output); // Subtract absolute error
         }
-
-        genome.Fitness = fitness;
+        // inverted error
+        genome.Fitness = (1.0)/(1.0+totalError);
+        //genome.Fitness = fitness;
     }
 } 
