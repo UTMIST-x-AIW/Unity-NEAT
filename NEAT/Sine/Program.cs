@@ -107,17 +107,21 @@ public class Program
     private static void EvaluateGenome(NEAT.Genome.Genome genome)
     {
         var net = FeedForwardNetwork.Create(genome);
-        double totalError = 0.0; // total error is 0
-        //double fitness = 50.0;
+        double totalScore = 0.0;
         
         foreach (var (input, expected) in TestPoints)
         {
-            var output = net.Activate(new[] { input })[0]; //if the activation function ranges from [0 to 1]
-            //fitness += 0.9 - Math.Abs(expected - output);
-            totalError += Math.Abs(expected - output); // Subtract absolute error
+            var output = net.Activate(new[] { input })[0];
+            var error = Math.Abs(expected - output);
+            
+            // Exponential scoring function that heavily rewards accuracy
+            // Perfect match = 1.0, Bad match approaches 0
+            var pointScore = Math.Exp(-2.0 * error * error);
+            totalScore += pointScore;
         }
-        // inverted error
-        genome.Fitness = (1.0)/(1.0+totalError);
-        //genome.Fitness = fitness;
+        
+        // Normalize score to [0,1] range and add small bonus for network simplicity
+        genome.Fitness = (totalScore / TestPoints.Length) * 0.95 + 
+                        0.05 / (1.0 + genome.Nodes.Count + genome.Connections.Count);
     }
 } 
