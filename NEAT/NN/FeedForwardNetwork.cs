@@ -131,12 +131,17 @@ namespace NEAT.NN
                 sum += conn.Weight * _nodeValues[inputKey];
             }
 
-            _nodeValues[nodeKey] = Sigmoid(sum);
+            _nodeValues[nodeKey] = tanh(sum);
         }
 
         private static double Sigmoid(double x)
         {
             return 1 / (1 + Math.Exp(-x));
+        }
+
+        private static double tanh(double x)
+        {
+            return Math.Tanh(x);
         }
 
 
