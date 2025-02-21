@@ -15,11 +15,19 @@ public class Program
     public static void Initialize()
     {
         TestPoints = new (double input, double output)[NumTestPoints];
+        // Use evenly distributed points for better coverage
         for (int i = 0; i < NumTestPoints; i++)
         {
-            // three sine cycles (6 pi)
-            double x = Random.NextDouble() * 5 * Math.PI - 2 * Math.PI;
+            double x = -2 * Math.PI + (4 * Math.PI * i) / (NumTestPoints - 1);
             TestPoints[i] = (x, Math.Sin(x));
+        }
+        
+        // Add some random points for variety
+        for (int i = 0; i < NumTestPoints/4; i++)
+        {
+            int idx = Random.Next(NumTestPoints);
+            double x = Random.NextDouble() * 4 * Math.PI - 2 * Math.PI;
+            TestPoints[idx] = (x, Math.Sin(x));
         }
     }
 
@@ -107,21 +115,22 @@ public class Program
     private static void EvaluateGenome(NEAT.Genome.Genome genome)
     {
         var net = FeedForwardNetwork.Create(genome);
-        double totalScore = 0.0;
+        double totalError = 0.0;
+        double maxError = 0.0;
         
         foreach (var (input, expected) in TestPoints)
         {
             var output = net.Activate(new[] { input })[0];
             var error = Math.Abs(expected - output);
-            
-            // Exponential scoring function that heavily rewards accuracy
-            // Perfect match = 1.0, Bad match approaches 0
-            var pointScore = Math.Exp(-2.0 * error * error);
-            totalScore += pointScore;
+            totalError += error * error;  // Use MSE
+            maxError = Math.Max(maxError, error);
         }
         
-        // Normalize score to [0,1] range and add small bonus for network simplicity
-        genome.Fitness = (totalScore / TestPoints.Length) * 0.95 + 
-                        0.05 / (1.0 + genome.Nodes.Count + genome.Connections.Count);
+        // Combined fitness: MSE + max error + complexity penalty
+        double mseFitness = Math.Exp(-2.0 * totalError / TestPoints.Length);
+        double maxErrorFitness = Math.Exp(-3.0 * maxError);
+        double complexityPenalty = 0.1 / (1.0 + genome.Nodes.Count * 0.1 + genome.Connections.Count * 0.05);
+        
+        genome.Fitness = (mseFitness * 0.6 + maxErrorFitness * 0.3 + complexityPenalty * 0.1);
     }
-} 
+}

@@ -3,35 +3,35 @@
 # Network Configuration
 num_inputs = 1
 num_outputs = 1
-num_hidden = 2
+num_hidden = 4
 
 # Genome Configuration
 initial_connection = full_direct
 
 # Population Configuration
-population_size = 250
+population_size = 500
 
 # Species Configuration
-compatibility_threshold = 3.5
+compatibility_threshold = 3.0
 compatibility_disjoint_coefficient = 1.0
-compatibility_weight_coefficient = 0.8
+compatibility_weight_coefficient = 0.5
 
 # Stagnation Configuration
-max_stagnation = 30
-species_elitism = 4
+max_stagnation = 50
+species_elitism = 5
 
 # Reproduction Configuration
-elitism = 4
-survival_threshold = 0.35
+elitism = 8
+survival_threshold = 0.2
 
 # Mutation Configuration
-mutation_power = 1.8
-weight_mutation_rate = 0.95
-node_add_prob = 0.6
-node_delete_prob = 0.15
-conn_add_prob = 0.8
-conn_delete_prob = 0.1
-add_node_mutation_rate = 0.2
-add_connection_mutation_rate = 0.3
+mutation_power = 0.9
+weight_mutation_rate = 0.8
+node_add_prob = 0.3
+node_delete_prob = 0.2
+conn_add_prob = 0.5
+conn_delete_prob = 0.15
+add_node_mutation_rate = 0.1
+add_connection_mutation_rate = 0.2
 disjoint_coefficient = 1.0
-weight_coefficient = 0.8 
+weight_coefficient = 0.6
