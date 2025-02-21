@@ -50,7 +50,7 @@ public class Program
         double bestFitness = double.MinValue;
         int generationsWithoutImprovement = 0;
         const int maxGenerations = 2000;
-        const int stagnationLimit = 300;
+        const int stagnationLimit = 150;
 
         while (generation < maxGenerations && generationsWithoutImprovement < stagnationLimit)
         {
@@ -103,18 +103,28 @@ public class Program
         // Test the best network on some sample points
         Console.WriteLine("\nTesting best network on sample points:");
         var network = FeedForwardNetwork.Create(bestGenome);
+        var inputs = new List<double>();
+        var expected = new List<double>();
+        var actual = new List<double>();
         for (int i = 0; i < Math.Min(10, TestPoints.Length); i++)
         {
-            var (input, expected) = TestPoints[i];
+            var (input, expectedValue) = TestPoints[i];
             var output = network.Activate(new[] { input })[0];
-            Console.WriteLine($"Input: {input:F3} | Expected: {expected:F3} | Output: {output:F3}");
+            Console.WriteLine($"Input: {input:F3} | Expected: {expectedValue:F3} | Output: {output:F3}");
+            inputs.Add(input);
+            expected.Add(expectedValue);
+            actual.Add(output);
         }
+
+        // Save results for plotting
+        string plotPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plot_data.csv");
+        PlotResults.SaveToCSV(inputs, expected, actual, plotPath);
 
         Console.WriteLine($"\nNetwork visualization saved to: {finalDotPath}");
         Console.WriteLine("To create an SVG, run: dot -Tsvg sine_final.dot -o sine_final.svg");
 
         // Plot the outputs against the test points
-        PlotResults(network, TestPoints);
+        PlotNetwork(network, TestPoints);
     }
 
     private static void EvaluateGenome(NEAT.Genome.Genome genome)
@@ -137,5 +147,26 @@ public class Program
         double complexityPenalty = 0.1 / (1.0 + genome.Nodes.Count * 0.1 + genome.Connections.Count * 0.05);
         
         genome.Fitness = (mseFitness * 0.6 + maxErrorFitness * 0.3 + complexityPenalty * 0.1);
+    }
+
+    private static void PlotNetwork(FeedForwardNetwork network, (double input, double output)[] testPoints)
+    {
+        var inputs = new List<double>();
+        var expected = new List<double>();
+        var actual = new List<double>();
+
+        // Sample more points for a smooth plot
+        for (int i = 0; i < testPoints.Length; i++)
+        {
+            var (input, expectedValue) = testPoints[i];
+            var output = network.Activate(new[] { input })[0];
+            inputs.Add(input);
+            expected.Add(expectedValue);
+            actual.Add(output);
+        }
+
+        string plotPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plot_data.csv");
+        PlotResults.SaveToCSV(inputs, expected, actual, plotPath);
+        Console.WriteLine($"Plot data saved to: {plotPath}");
     }
 }

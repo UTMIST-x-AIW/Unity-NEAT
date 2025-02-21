@@ -5,8 +5,8 @@ import os
 def plot_results(csv_path):
     data = pd.read_csv(csv_path)
     plt.figure(figsize=(10, 6))
-    plt.plot(data['Input'], data['Expected'], label='Expected', color='blue')
-    plt.plot(data['Input'], data['Actual'], label='Actual', color='red', linestyle='dashed')
+    plt.scatter(data['Input'], data['Expected'], label='Expected', color='blue')
+    plt.scatter(data['Input'], data['Actual'], label='Actual', color='red')
     plt.xlabel('Input')
     plt.ylabel('Output')
     plt.title('Sine Function Approximation')

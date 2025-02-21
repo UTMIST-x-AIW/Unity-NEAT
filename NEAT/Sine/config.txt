@@ -3,7 +3,7 @@
 # Network Configuration
 num_inputs = 1
 num_outputs = 1
-num_hidden = 4
+num_hidden = 0
 
 # Genome Configuration
 initial_connection = full_direct
