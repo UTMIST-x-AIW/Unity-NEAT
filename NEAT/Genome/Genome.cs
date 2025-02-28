@@ -71,6 +71,61 @@ namespace NEAT.Genome
             return disjointCoefficient * (disjointNodes + disjointConnections) + weightCoefficient * averageWeightDiff;
         }
 
+        public Genome Crossover(Genome other, int childKey)
+        {
+            Console.WriteLine($"\nStarting crossover between Genome {Key} (fitness: {Fitness}) and Genome {other.Key} (fitness: {other.Fitness})");
+            
+            // Determine which parent is more fit
+            Genome morefit = (Fitness >= other.Fitness) ? this : other;
+            Genome lessfit = (Fitness >= other.Fitness) ? other : this;
+            
+            Console.WriteLine($"More fit parent: Genome {morefit.Key}, Less fit parent: Genome {lessfit.Key}");
+
+            var child = new Genome(childKey);
+
+            // Handle nodes first
+            Console.WriteLine("\nInheriting nodes:");
+            Console.WriteLine($"More fit parent nodes: {string.Join(", ", morefit.Nodes.Keys)}");
+            
+            // Add all nodes from the more fit parent
+            foreach (var node in morefit.Nodes.Values)
+            {
+                child.AddNode((NodeGene)node.Clone());
+            }
+            Console.WriteLine($"Child inherited nodes: {string.Join(", ", child.Nodes.Keys)}");
+
+            // Handle connections
+            Console.WriteLine("\nInheriting connections:");
+            Console.WriteLine($"More fit parent connections: {string.Join(", ", morefit.Connections.Keys)}");
+            Console.WriteLine($"Less fit parent connections: {string.Join(", ", lessfit.Connections.Keys)}");
+
+            foreach (var conn in morefit.Connections)
+            {
+                // If both parents have this connection, randomly choose which one to inherit from
+                if (lessfit.Connections.ContainsKey(conn.Key))
+                {
+                    // Randomly choose which parent's connection to inherit
+                    bool chooseMoreFit = Random.Shared.NextDouble() < 0.5;
+                    var selectedConn = chooseMoreFit ? conn.Value : lessfit.Connections[conn.Key];
+                    
+                    Console.WriteLine($"Matching connection {conn.Key}: Chose {(chooseMoreFit ? "more" : "less")} fit parent's connection with weight {selectedConn.Weight}");
+                    child.AddConnection((ConnectionGene)selectedConn.Clone());
+                }
+                else
+                {
+                    // Disjoint or excess gene - inherit from the more fit parent
+                    Console.WriteLine($"Disjoint/excess connection {conn.Key}: Inherited from more fit parent with weight {conn.Value.Weight}");
+                    child.AddConnection((ConnectionGene)conn.Value.Clone());
+                }
+            }
+
+            Console.WriteLine($"\nCrossover complete. Child Genome {childKey} created with:");
+            Console.WriteLine($"Nodes: {string.Join(", ", child.Nodes.Keys)}");
+            Console.WriteLine($"Connections: {string.Join(", ", child.Connections.Keys)}");
+
+            return child;
+        }
+
         public override string ToString()
         {
             return $"Genome(key={Key}, nodes={Nodes.Count}, connections={Connections.Count}, fitness={Fitness})";
