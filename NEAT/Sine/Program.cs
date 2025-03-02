@@ -23,9 +23,9 @@ public class Program
             double x = -2 * Math.PI + (4 * Math.PI * i) / (NumTestPoints - 1);
             TestPoints[i] = (x, Math.Sin(x));
         }
-        
+
         // Add some random points for variety
-        for (int i = 0; i < NumTestPoints/4; i++)
+        for (int i = 0; i < NumTestPoints / 4; i++)
         {
             int idx = Random.Next(NumTestPoints);
             double x = Random.NextDouble() * 4 * Math.PI - 2 * Math.PI;
@@ -56,6 +56,7 @@ public class Program
         {
             Console.WriteLine($"\nGeneration: {generation}");
             pop.Evolve(EvaluateGenome);
+            Console.WriteLine($"\nSpecies Count: {pop.getNumSpecies().ToString()}");
             var best = pop.GetBestGenome();
             Console.WriteLine($"Best fitness: {best.Fitness:F4}");
 
@@ -63,7 +64,7 @@ public class Program
             {
                 bestFitness = best.Fitness ?? double.MinValue;
                 generationsWithoutImprovement = 0;
-                
+
                 // Generate DOT file for improved network
                 var dot = NetworkVisualizer.GenerateDotGraph(best);
                 var dotPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"sine_gen_{generation}.dot");
@@ -83,7 +84,8 @@ public class Program
 
 
             generation++;
-            if (generationsWithoutImprovement > stagnationLimit-1){
+            if (generationsWithoutImprovement > stagnationLimit - 1)
+            {
                 Console.WriteLine("Stagnation limit reached, stopping evolution.");
             }
         }
@@ -99,7 +101,7 @@ public class Program
         // Print final results
         Console.WriteLine($"\nEvolution completed after {generation} generations");
         Console.WriteLine($"Best fitness achieved: {bestGenome.Fitness:F4}");
-        
+
         // Test the best network on some sample points
         Console.WriteLine("\nTesting best network on sample points:");
         var network = FeedForwardNetwork.Create(bestGenome);
@@ -132,7 +134,7 @@ public class Program
         var net = FeedForwardNetwork.Create(genome);
         double totalError = 0.0;
         double maxError = 0.0;
-        
+
         foreach (var (input, expected) in TestPoints)
         {
             var output = net.Activate(new[] { input })[0];
@@ -140,12 +142,12 @@ public class Program
             totalError += error * error;  // Use MSE
             maxError = Math.Max(maxError, error);
         }
-        
+
         // Combined fitness: MSE + max error + complexity penalty
         double mseFitness = Math.Exp(-2.0 * totalError / TestPoints.Length);
         double maxErrorFitness = Math.Exp(-3.0 * maxError);
         double complexityPenalty = 0.1 / (1.0 + genome.Nodes.Count * 0.1 + genome.Connections.Count * 0.05);
-        
+
         genome.Fitness = (mseFitness * 0.6 + maxErrorFitness * 0.3 + complexityPenalty * 0.1);
     }
 

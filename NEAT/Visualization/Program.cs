@@ -13,6 +13,7 @@ public class Program
         var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.txt");
         var config = new NEAT.Config.Config();
         config.LoadConfig(configPath);
+        Console.WriteLine(configPath);
 
         // Create a population and run XOR evolution
         var pop = new Population(config);
@@ -24,6 +25,7 @@ public class Program
         {
             Console.WriteLine($"\nGeneration: {generation}");
             pop.Evolve(EvaluateGenome);
+            Console.WriteLine($"\nSpecies Count: {pop.getNumSpecies().ToString()}");
             var best = pop.GetBestGenome();
             Console.WriteLine($"Best fitness: {best.Fitness:F4}");
 

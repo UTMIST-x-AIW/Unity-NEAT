@@ -336,5 +336,11 @@ namespace NEAT
         {
             return _population.Values.OrderByDescending(g => g.Fitness).First();
         }
+
+        public int getNumSpecies()
+        {
+            return _species.Count;
+        }
+
     }
 }
