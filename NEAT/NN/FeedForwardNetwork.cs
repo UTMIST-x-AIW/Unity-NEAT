@@ -85,7 +85,7 @@ namespace NEAT.NN
         {
             if (inputs.Length != _inputNodes.Count)
             {
-                throw new ArgumentException($"Expected {_inputNodes.Count} inputs, got {inputs.Length}");
+                throw new ArgumentException(string.Format("Expected {0} inputs, got {1}", _inputNodes.Count, inputs.Length));
             }
 
             // Reset node values
@@ -129,7 +129,7 @@ namespace NEAT.NN
                 // Input node must already have a value since we're feedforward
                 if (!_nodeValues.ContainsKey(inputKey))
                 {
-                    throw new InvalidOperationException($"Node {inputKey} should have been activated before node {nodeKey}");
+                    throw new InvalidOperationException(string.Format("Node {0} should have been activated before node {1}", inputKey, nodeKey));
                 }
 
                 sum += conn.Weight * _nodeValues[inputKey];

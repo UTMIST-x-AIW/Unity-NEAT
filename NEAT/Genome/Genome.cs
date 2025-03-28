@@ -119,16 +119,16 @@ namespace NEAT.Genome
                 }
             }
 
-            Console.WriteLine($"\nCrossover complete. Child Genome {childKey} created with:");
-            Console.WriteLine($"Nodes: {string.Join(", ", child.Nodes.Keys)}");
-            Console.WriteLine($"Connections: {string.Join(", ", child.Connections.Keys)}");
+            Console.WriteLine(string.Format("\nCrossover complete. Child Genome {0} created with:", childKey));
+            Console.WriteLine(string.Format("Nodes: {0}", string.Join(", ", child.Nodes.Keys)));
+            Console.WriteLine(string.Format("Connections: {0}", string.Join(", ", child.Connections.Keys)));
 
             return child;
         }
 
         public override string ToString()
         {
-            return $"Genome(key={Key}, nodes={Nodes.Count}, connections={Connections.Count}, fitness={Fitness})";
+            return string.Format("Genome(key={0}, nodes={1}, connections={2}, fitness={3})", Key, Nodes.Count, Connections.Count, Fitness);
         }
     }
 }

@@ -6,9 +6,9 @@ namespace NEAT.Config
     {
         public string Name { get; }
         public Type ValueType { get; }
-        public object? DefaultValue { get; }
+        public object DefaultValue { get; }
 
-        public ConfigParameter(string name, Type valueType, object? defaultValue = null)
+        public ConfigParameter(string name, Type valueType, object defaultValue = null)
         {
             Name = name;
             ValueType = valueType;
@@ -33,7 +33,7 @@ namespace NEAT.Config
             }
             catch (Exception ex)
             {
-                throw new ArgumentException($"Failed to parse value '{value}' as {ValueType.Name} for parameter '{Name}'", ex);
+                throw new ArgumentException(string.Format("Failed to parse value '{0}' as {1} for parameter '{2}'", value, ValueType.Name, Name), ex);
             }
         }
 
@@ -44,19 +44,21 @@ namespace NEAT.Config
 
             if (ValueType.IsEnum)
             {
-                return value.ToString()?.ToLower() ?? "";
+                string enumValue = value.ToString();
+                return enumValue != null ? enumValue.ToLower() : "";
             }
 
-            return value.ToString() ?? "";
+            string stringValue = value.ToString();
+            return stringValue != null ? stringValue : "";
         }
 
         public override string ToString()
         {
             if (DefaultValue == null)
             {
-                return $"ConfigParameter(\"{Name}\", {ValueType.Name})";
+                return string.Format("ConfigParameter(\"{0}\", {1})", Name, ValueType.Name);
             }
-            return $"ConfigParameter(\"{Name}\", {ValueType.Name}, {Format(DefaultValue)})";
+            return string.Format("ConfigParameter(\"{0}\", {1}, {2})", Name, ValueType.Name, Format(DefaultValue));
         }
     }
 } 

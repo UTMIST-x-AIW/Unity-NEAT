@@ -1,11 +1,24 @@
 using System.Text;
 using NEAT.Genome;
 using NEAT.Genes;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace NEAT;
 
 public class NetworkVisualizer
 {
+    private readonly Dictionary<int, (float x, float y)> _nodePositions;
+    private float _width;
+    private float _height;
+
+    public NetworkVisualizer(float width, float height)
+    {
+        _nodePositions = new Dictionary<int, (float, float)>();
+        _width = width;
+        _height = height;
+    }
+
     public static string GenerateDotGraph(NEAT.Genome.Genome genome)
     {
         var sb = new StringBuilder();
