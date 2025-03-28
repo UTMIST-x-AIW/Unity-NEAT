@@ -115,7 +115,11 @@ namespace NEAT.NN
 
         private void ActivateNode(int nodeKey)
         {
-            double sum = 0.0;
+            // Get the node
+            var node = _nodes[nodeKey];
+            
+            // Start with the bias value
+            double sum = node.Bias;
 
             // Sum all incoming connections
             foreach (var inputKey in _incomingConnections[nodeKey])

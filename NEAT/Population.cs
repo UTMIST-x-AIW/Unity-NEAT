@@ -49,7 +49,9 @@ namespace NEAT
             int numInputs = _config.GetParameter("num_inputs", 2);
             for (int i = 0; i < numInputs; i++)
             {
-                genome.AddNode(new NodeGene(i, NodeType.Input));
+                var inputNode = new NodeGene(i, NodeType.Input);
+                inputNode.Bias = 0.0; // Input nodes don't typically use bias
+                genome.AddNode(inputNode);
                 _nextNodeKey = Math.Max(_nextNodeKey, i + 1);
             }
 
@@ -58,7 +60,10 @@ namespace NEAT
             int firstOutputKey = _nextNodeKey;  // Store the key of the first output node
             for (int i = 0; i < numOutputs; i++)
             {
-                genome.AddNode(new NodeGene(_nextNodeKey + i, NodeType.Output));
+                var outputNode = new NodeGene(_nextNodeKey + i, NodeType.Output);
+                // Initialize output nodes with random bias
+                outputNode.Bias = (_random.NextDouble() * 4) - 2; // Random bias between -2 and 2
+                genome.AddNode(outputNode);
             }
             _nextNodeKey += numOutputs;
 
@@ -230,6 +235,29 @@ namespace NEAT
                     }
                 }
             }
+            
+            // Bias mutation (similar to weight mutation)
+            double biasMutationRate = _config.GetParameter("bias_mutation_rate", 0.8); // Use the same rate as weights by default
+            
+            foreach (var node in genome.Nodes.Values)
+            {
+                // Skip input nodes (they don't use bias)
+                if (node.Type == Genes.NodeType.Input)
+                    continue;
+                    
+                if (_random.NextDouble() < biasMutationRate)
+                {
+                    // Either perturb the bias or assign a new random bias
+                    if (_random.NextDouble() < 0.9)
+                    {
+                        node.Bias += (_random.NextDouble() * 2 - 1) * mutationPower;
+                    }
+                    else
+                    {
+                        node.Bias = (_random.NextDouble() * 4) - 2; // Same range as weights
+                    }
+                }
+            }
 
             // Add node mutation
             if (_random.NextDouble() < _config.GetParameter("node_add_prob", 0.2))
@@ -247,6 +275,9 @@ namespace NEAT
 
                     // Place new node in a layer between source and target
                     var newNode = new NodeGene(newNodeKey, NodeType.Hidden);
+                    // Initialize the new node with a random bias
+                    newNode.Bias = (_random.NextDouble() * 4) - 2; // Random bias between -2 and 2
+
                     if (targetNode.Type == NodeType.Output)
                     {
                         newNode.Layer = sourceNode.Layer + 1;
